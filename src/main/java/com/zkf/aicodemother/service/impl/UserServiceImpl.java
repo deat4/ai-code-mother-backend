@@ -152,34 +152,33 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String userRole = userQueryRequest.getUserRole();
         String sortField = userQueryRequest.getSortField();
         String sortOrder = userQueryRequest.getSortOrder();
+
+        // 核心修改点：需要使用带泛型的 QueryWrapper 并绑定实体类或者指定映射关系
         QueryWrapper queryWrapper = QueryWrapper.create();
-        queryWrapper.eq(id != null, "id", id);
-        queryWrapper.eq(StrUtil.isNotBlank(userRole), "userRole", userRole);
-        queryWrapper.like(StrUtil.isNotBlank(userAccount), "userAccount", userAccount);
-        queryWrapper.like(StrUtil.isNotBlank(userName), "userName", userName);
-        queryWrapper.like(StrUtil.isNotBlank(userProfile), "userProfile", userProfile);
-        queryWrapper.orderBy(StrUtil.isNotBlank(sortField), "ascend".equals(sortOrder), sortField);
+
+        // 正确的 eq 用法，无需手动编写数据库字段名如果已配置好，如果是按表名查询可以直接跟 String 但为了稳妥，如果是 Mybatis-Flex 常规用列操作：
+        // 修改了条件传参方式，处理了 Mybatis-Flex `eq()` 的传参重载问题。
+        if (id != null) {
+            queryWrapper.eq("id", id);
+        }
+        if (StrUtil.isNotBlank(userRole)) {
+            queryWrapper.eq("userRole", userRole);
+        }
+        if (StrUtil.isNotBlank(userAccount)) {
+            queryWrapper.like("userAccount", userAccount);
+        }
+        if (StrUtil.isNotBlank(userName)) {
+            queryWrapper.like("userName", userName);
+        }
+        if (StrUtil.isNotBlank(userProfile)) {
+            queryWrapper.like("userProfile", userProfile);
+        }
+        if (StrUtil.isNotBlank(sortField)) {
+            queryWrapper.orderBy(sortField, "ascend".equals(sortOrder)); // MyBatis-Flex 的 orderBy 参数顺序是：字段名，是否升序 (boolean)
+        }
         return queryWrapper;
     }
-    public QueryWrapper getQueryWrapper(UserQueryRequest userQueryRequest) {
-        if (userQueryRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
-        }
-        Long id = userQueryRequest.getId();
-        String userAccount = userQueryRequest.getUserAccount();
-        String userName = userQueryRequest.getUserName();
-        String userProfile = userQueryRequest.getUserProfile();
-        String userRole = userQueryRequest.getUserRole();
-        String sortField = userQueryRequest.getSortField();
-        String sortOrder = userQueryRequest.getSortOrder();
-        return QueryWrapper.create()
-                .eq("id", id)
-                .eq("userRole", userRole)
-                .like("userAccount", userAccount)
-                .like("userName", userName)
-                .like("userProfile", userProfile)
-                .orderBy(sortField, "ascend".equals(sortOrder));
-    }
+
 
     @Override
     public UserVO getUserVO(User user) {
