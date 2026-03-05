@@ -33,4 +33,19 @@ public class CodeFileSaverExecutor {
             case MULTI_FILE -> multiFileCodeFileSaver.saveCode((MultiFileCodeResult) codeResult);
         };
     }
+
+    /**
+     * 执行代码保存（使用 appId）
+     *
+     * @param codeResult  代码结果对象
+     * @param codeGenType 代码生成类型
+     * @param appId       应用 ID
+     * @return 保存的目录
+     */
+    public static File executeSaver(Object codeResult, CodeGenTypeEnum codeGenType, Long appId) {
+        return switch (codeGenType) {
+            case HTML -> htmlCodeFileSaver.saveCode((HtmlCodeResult) codeResult, appId);
+            case MULTI_FILE -> multiFileCodeFileSaver.saveCode((MultiFileCodeResult) codeResult, appId);
+        };
+    }
 }

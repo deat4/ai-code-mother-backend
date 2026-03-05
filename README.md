@@ -26,8 +26,8 @@ com.zkf.aicodemother
 ├── aop/                   # AOP切面 (AuthInterceptor)
 ├── common/                # 通用类 (BaseResponse, ResultUtils, PageRequest)
 ├── config/                # 配置类 (CorsConfig, JsonConfig, AiCodeGeneratorServiceFactory)
-├── constant/              # 常量 (UserConstant)
-├── controller/            # API 控制器
+├── constant/              # 常量 (UserConstant, AppConstant)
+├── controller/            # API 控制器 (UserController, AppController, StaticResourceController)
 ├── core/                  # 核心业务模块
 │   ├── parser/            # 代码解析器（策略模式）
 │   ├── saver/             # 文件保存器（模板方法模式）
@@ -36,10 +36,10 @@ com.zkf.aicodemother
 ├── exception/             # 异常处理
 ├── mapper/                # MyBatis Mapper
 ├── model/
-│   ├── dto/               # 数据传输对象
-│   ├── entity/            # 实体类
+│   ├── dto/               # 数据传输对象 (AppAddRequest, AppDeployRequest, etc.)
+│   ├── entity/            # 实体类 (User, App)
 │   ├── enums/             # 枚举类
-│   └── vo/                # 视图对象
+│   └── vo/                # 视图对象 (UserVO, AppVO)
 └── service/               # 业务逻辑
 ```
 
@@ -57,10 +57,89 @@ com.zkf.aicodemother
 | POST | `/api/user/update` | 更新用户 | 管理员 |
 | POST | `/api/user/list/page/vo` | 分页查询用户 | 管理员 |
 
-### AI 代码生成
+### 应用模块
+| 方法 | 路径 | 说明 | 权限 |
+|-----|------|-----|-----|
+| POST | `/api/app/add` | 创建应用 | 需登录 |
+| POST | `/api/app/update` | 更新应用 | 所有者 |
+| POST | `/api/app/delete` | 删除应用 | 所有者/管理员 |
+| GET | `/api/app/get/vo` | 获取应用详情 | 无 |
+| POST | `/api/app/my/list/page/vo` | 分页查询我的应用 | 需登录 |
+| POST | `/api/app/good/list/page/vo` | 分页查询精选应用 | 无 |
+| GET | `/api/app/chat/gen/code` | AI 代码生成（SSE流式） | 所有者 |
+| POST | `/api/app/deploy` | 部署应用 | 所有者 |
+
+### 管理员接口
+| 方法 | 路径 | 说明 | 权限 |
+|-----|------|-----|-----|
+| POST | `/api/app/admin/delete` | 删除任意应用 | 管理员 |
+| POST | `/api/app/admin/update` | 更新应用（限制字段） | 管理员 |
+| POST | `/api/app/admin/list/page/vo` | 分页查询所有应用 | 管理员 |
+| GET | `/api/app/admin/get/vo` | 获取应用详情 | 管理员 |
+
+### 静态资源
+| 方法 | 路径 | 说明 | 权限 |
+|-----|------|-----|-----|
+| GET | `/api/static/{deployKey}/**` | 访问已部署应用 | 无 |
+
+## AI 代码生成
+
+### 功能特性
 - **同步生成**: 支持单文件 HTML 和多文件代码生成
 - **流式输出**: SSE 流式返回，实时展示生成进度
 - **自动保存**: 生成的代码自动保存到 `tmp/code_output/` 目录
+- **代码部署**: 一键部署，生成可访问的 URL
+
+### SSE 流式接口
+```
+GET /api/app/chat/gen/code?appId=1&message=生成一个登录页面
+Accept: text/event-stream
+```
+
+**响应格式**:
+```
+data: {"d":"<html>\n<head>"}
+data: {"d":"<title>Login</title>"}
+event: done
+data: 
+```
+
+### 前端对接示例
+```javascript
+const eventSource = new EventSource('/api/app/chat/gen/code?appId=1&message=xxx');
+
+eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log(data.d); // 获取实际内容
+};
+
+eventSource.addEventListener('done', (event) => {
+    console.log('生成完成');
+    eventSource.close();
+});
+```
+
+## 应用部署
+
+### 部署流程
+```
+1. 生成代码 → tmp/code_output/HTML_1/
+2. 调用部署接口 → 生成 deployKey (如 "aB3xYz")
+3. 复制文件 → tmp/code_deploy/aB3xYz/
+4. 更新数据库 → deployKey, deployedTime
+5. 访问 URL → http://localhost/aB3xYz/
+```
+
+### 目录结构
+```
+tmp/
+├── code_output/           # AI 生成的代码（预览）
+│   ├── HTML_1/            # 格式: codeGenType_appId
+│   └── MULTI_FILE_2/
+└── code_deploy/           # 部署的代码（正式访问）
+    ├── aB3xYz/           # deployKey 作为目录名
+    └── xY7zAb/
+```
 
 ## 设计模式
 

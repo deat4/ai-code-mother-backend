@@ -1,0 +1,23 @@
+### 1. 预执行：用户登录
+# 只有这一步成功返回 {"code": 0, ...}，后续测试才有意义
+POST http://localhost:8123/api/user/login
+Content-Type: application/json
+
+{
+  "userAccount": "yupi",
+  "userPassword": "12345678"
+}
+
+> {%
+    // 这是关键：确保 IDEA 记住了这个 Session
+    client.test("登录必须成功", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.code === 0, "登录失败: " + response.body.message);
+    });
+%}
+
+### 2. 调用生成代码接口 (流式)
+# IDEA 会自动带上上一步获取的 Cookie
+GET http://localhost:8123/api/app/chat/gen/code?appId=123456&message=我需要一个简单的任务记录工具网站
+Accept: text/event-stream
+Cache-Control: no-cache

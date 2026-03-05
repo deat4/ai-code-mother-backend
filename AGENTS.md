@@ -62,8 +62,8 @@ src/main/java/com/zkf/aicodemother/
 ├── aop/                # AOP aspects (AuthInterceptor)
 ├── common/             # Common classes (BaseResponse, ResultUtils, PageRequest)
 ├── config/             # Configuration (CorsConfig, JsonConfig, AiCodeGeneratorServiceFactory)
-├── constant/           # Constants (UserConstant)
-├── controller/         # REST controllers
+├── constant/           # Constants (UserConstant, AppConstant)
+├── controller/         # REST controllers (UserController, AppController, StaticResourceController)
 ├── core/               # Core business module
 │   ├── parser/         # Code parsers (Strategy Pattern)
 │   ├── saver/          # File savers (Template Method Pattern)
@@ -72,10 +72,10 @@ src/main/java/com/zkf/aicodemother/
 ├── exception/          # Exception handling
 ├── mapper/             # MyBatis mappers
 ├── model/
-│   ├── dto/            # Data transfer objects
-│   ├── entity/         # Entity classes
+│   ├── dto/            # Data transfer objects (AppAddRequest, AppDeployRequest, etc.)
+│   ├── entity/         # Entity classes (User, App)
 │   ├── enums/          # Enumerations (UserRoleEnum)
-│   └── vo/             # View objects (UserVO, LoginUserVO)
+│   └── vo/             # View objects (UserVO, AppVO)
 └── service/            # Business logic (interface + impl)
 ```
 
@@ -89,8 +89,8 @@ src/main/java/com/zkf/aicodemother/
 - **Controllers**: `{Entity}Controller` (e.g., `UserController`)
 - **Services**: `{Entity}Service` / `{Entity}ServiceImpl`
 - **Mappers**: `{Entity}Mapper`
-- **Entities**: `{Entity}` (singular, e.g., `User`)
-- **DTOs**: `{Entity}Request`, `{Entity}QueryRequest`
+- **Entities**: `{Entity}` (singular, e.g., `User`, `App`)
+- **DTOs**: `{Entity}Request`, `{Entity}QueryRequest`, `{Entity}DeployRequest`
 - **VOs**: `{Entity}VO`, `LoginUserVO`
 - **Parsers**: `{Type}CodeParser` (e.g., `HtmlCodeParser`)
 - **Savers**: `{Type}CodeFileSaverTemplate`
@@ -155,7 +155,7 @@ public interface AiCodeGeneratorService {
 - **Transactions**: `@Transactional` on service methods modifying data
 - **REST**: Plural nouns for resources (e.g., `/users`, `/orders`)
 - **Permissions**: Use `@AuthCheck(mustRole = UserConstant.ADMIN_ROLE)` for admin endpoints
-- **Data Masking**: Return `UserVO` for public data, `User` only for admin
+- **Data Masking**: Return `UserVO`/`AppVO` for public data, `User`/`App` only for admin
 - **Design Patterns**: Use Strategy for parsers, Template Method for savers, Facade for unified entry
 
 ## API Endpoints
@@ -172,6 +172,61 @@ public interface AiCodeGeneratorService {
 | POST | `/user/delete` | Delete user | Admin |
 | POST | `/user/update` | Update user | Admin |
 | POST | `/user/list/page/vo` | List users (paginated) | Admin |
+
+### App Module
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| POST | `/app/add` | Create application | Login required |
+| POST | `/app/update` | Update application (owner) | Owner |
+| POST | `/app/delete` | Delete application (owner or admin) | Owner/Admin |
+| GET | `/app/get/vo` | Get application with user info | None |
+| POST | `/app/my/list/page/vo` | List my applications (paginated) | Login required |
+| POST | `/app/good/list/page/vo` | List featured applications | None |
+| GET | `/app/chat/gen/code` | AI code generation (SSE stream) | Owner |
+| POST | `/app/deploy` | Deploy application | Owner |
+
+### Admin Endpoints
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| POST | `/app/admin/delete` | Delete any application | Admin |
+| POST | `/app/admin/update` | Update application (limited fields) | Admin |
+| POST | `/app/admin/list/page/vo` | List all applications (paginated) | Admin |
+| GET | `/app/admin/get/vo` | Get application details | Admin |
+
+### Static Resources
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| GET | `/static/{deployKey}/**` | Serve deployed application files | None |
+
+## Directory Structure
+
+```
+tmp/
+├── code_output/           # AI generated code (preview)
+│   ├── HTML_1/            # Format: codeGenType_appId
+│   └── MULTI_FILE_2/
+└── code_deploy/           # Deployed applications
+    ├── aB3xYz/           # Format: deployKey
+    └── xY7zAb/
+```
+
+## Constants
+
+```java
+// UserConstant
+ADMIN_ROLE = "admin"
+
+// AppConstant
+GOOD_APP_PRIORITY = 99       // Featured application priority
+DEFAULT_APP_PRIORITY = 0     // Default priority
+CODE_OUTPUT_ROOT_DIR = user.dir/tmp/code_output
+CODE_DEPLOY_ROOT_DIR = user.dir/tmp/code_deploy
+CODE_DEPLOY_HOST = http://localhost
+
+// CodeGenTypeEnum
+HTML("HTML")                 // Single HTML file
+MULTI_FILE("MULTI_FILE")     // Multiple files
+```
 
 ## API Documentation
 
