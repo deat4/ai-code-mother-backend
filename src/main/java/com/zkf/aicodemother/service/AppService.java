@@ -162,6 +162,15 @@ public interface AppService {
     reactor.core.publisher.Flux<String> chatToGenCode(Long appId, String message, User loginUser);
 
     /**
+     * 停止 AI 生成
+     *
+     * @param sessionId 会话ID
+     * @return 是否成功停止
+     */
+    boolean stopGeneration(String sessionId);
+
+
+    /**
      * 部署应用
      *
      * @param appId     应用 ID
@@ -171,4 +180,4 @@ public interface AppService {
     String deployApp(Long appId, com.zkf.aicodemother.model.entity.User loginUser);
 
 }
-}
+

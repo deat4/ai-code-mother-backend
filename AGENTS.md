@@ -26,11 +26,8 @@ mvn compile                    # Compile only
 mvn spring-boot:run            # Development mode
 java -jar target/ai-code-mother-0.0.1-SNAPSHOT.jar
 mvn spring-boot:run -Dspring-boot.run.profiles=location
-```
 
-## Test Commands
-
-```bash
+# Test
 mvn test                             # All tests
 mvn test -Dtest=ClassName            # Single class
 mvn test -Dtest=ClassName#methodName # Single method
@@ -46,8 +43,8 @@ mvn test -Dtest=ClassName#methodName # Single method
 | lombok | Boilerplate reduction |
 | hutool-all 5.8.38 | Java utility library |
 | knife4j-openapi3 4.4.0 | OpenAPI/Swagger UI |
-| mybatis-flex | ORM framework |
-| langchain4j | AI integration framework |
+| mybatis-flex 1.11.0 | ORM framework |
+| langchain4j 1.1.0 | AI integration framework |
 | reactor-core | Reactive programming (SSE) |
 
 ## Project Structure
@@ -56,44 +53,24 @@ mvn test -Dtest=ClassName#methodName # Single method
 src/main/java/com/zkf/aicodemother/
 ├── AiCodeMotherApplication.java  # Main entry point
 ├── ai/                 # AI code generation module
-│   ├── model/          # AI result models (HtmlCodeResult, MultiFileCodeResult)
-│   └── AiCodeGeneratorService.java
-├── annotation/         # Custom annotations (AuthCheck)
+├── annotation/         # Custom annotations (@AuthCheck)
 ├── aop/                # AOP aspects (AuthInterceptor)
-├── common/             # Common classes (BaseResponse, ResultUtils, PageRequest)
-├── config/             # Configuration (CorsConfig, JsonConfig, AiCodeGeneratorServiceFactory)
-├── constant/           # Constants (UserConstant, AppConstant)
-├── controller/         # REST controllers (UserController, AppController, StaticResourceController)
-├── core/               # Core business module
-│   ├── parser/         # Code parsers (Strategy Pattern)
-│   ├── saver/          # File savers (Template Method Pattern)
-│   ├── CodeGenTypeEnum.java
-│   └── AiCodeGeneratorFacade.java
-├── exception/          # Exception handling
+├── common/             # BaseResponse, ResultUtils, PageRequest
+├── config/             # CorsConfig, JsonConfig
+├── constant/           # UserConstant, AppConstant
+├── controller/         # REST controllers
+├── core/               # Code parsers (Strategy), file savers (Template Method)
+├── exception/          # ErrorCode, BusinessException, GlobalExceptionHandler
 ├── mapper/             # MyBatis mappers
 ├── model/
-│   ├── dto/            # Data transfer objects (AppAddRequest, AppDeployRequest, etc.)
-│   ├── entity/         # Entity classes (User, App)
-│   ├── enums/          # Enumerations (UserRoleEnum)
-│   └── vo/             # View objects (UserVO, AppVO)
+│   ├── dto/            # Request DTOs
+│   ├── entity/         # Entity classes
+│   ├── enums/          # Enumerations
+│   └── vo/             # View objects
 └── service/            # Business logic (interface + impl)
 ```
 
 ## Code Style Guidelines
-
-### Package Naming
-- Base package: `com.zkf.aicodemother`
-- Subpackages: `controller`, `service`, `mapper`, `model`, `config`, `common`, `exception`, `core`, `ai`
-
-### Class Naming
-- **Controllers**: `{Entity}Controller` (e.g., `UserController`)
-- **Services**: `{Entity}Service` / `{Entity}ServiceImpl`
-- **Mappers**: `{Entity}Mapper`
-- **Entities**: `{Entity}` (singular, e.g., `User`, `App`)
-- **DTOs**: `{Entity}Request`, `{Entity}QueryRequest`, `{Entity}DeployRequest`
-- **VOs**: `{Entity}VO`, `LoginUserVO`
-- **Parsers**: `{Type}CodeParser` (e.g., `HtmlCodeParser`)
-- **Savers**: `{Type}CodeFileSaverTemplate`
 
 ### Import Order
 ```java
@@ -114,6 +91,14 @@ import reactor.core.publisher.Flux;
 import com.zkf.aicodemother.model.entity.User;
 ```
 
+### Class Naming Conventions
+- **Controllers**: `{Entity}Controller` (e.g., `UserController`)
+- **Services**: `{Entity}Service` / `{Entity}ServiceImpl`
+- **Mappers**: `{Entity}Mapper`
+- **Entities**: `{Entity}` (singular, e.g., `User`, `App`)
+- **DTOs**: `{Entity}Request`, `{Entity}QueryRequest`, `{Entity}AddRequest`
+- **VOs**: `{Entity}VO`, `LoginUserVO`
+
 ### Controller Pattern
 ```java
 @RestController
@@ -122,11 +107,70 @@ public class UserController {
     @Resource
     private UserService userService;
 
+    // region 用户认证相关接口
     @PostMapping("login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest request, HttpServletRequest httpRequest) {
         return ResultUtils.success(userService.userLogin(request.getUserAccount(), request.getUserPassword(), httpRequest));
     }
+    // endregion
 }
+```
+
+### Service Pattern
+```java
+@Service
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+    @Override
+    public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+        // Validation using ThrowUtils
+        ThrowUtils.throwIf(StrUtil.hasBlank(userAccount, userPassword), ErrorCode.PARAMS_ERROR);
+        
+        // Query using MyBatis-Flex
+        QueryWrapper queryWrapper = QueryWrapper.create();
+        queryWrapper.eq("userAccount", userAccount);
+        User user = this.getOne(queryWrapper);
+        
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        return BeanUtil.copyProperties(user, LoginUserVO.class);
+    }
+}
+```
+
+### Entity Pattern
+```java
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Table("user")
+public class User implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
+    
+    @Id(keyType = KeyType.Generator, value = KeyGenerators.snowFlakeId)
+    private Long id;
+    
+    private String userAccount;
+    
+    @Column(value = "isDelete", isLogicDelete = true)
+    private Integer isDelete;
+}
+```
+
+### Error Handling Pattern
+```java
+// Use ThrowUtils for assertion-style validation
+ThrowUtils.throwIf(condition, ErrorCode.PARAMS_ERROR);
+ThrowUtils.throwIf(condition, ErrorCode.NOT_FOUND_ERROR, "自定义错误消息");
+
+// ErrorCode enum values
+SUCCESS(0, "ok")
+PARAMS_ERROR(40000, "请求参数错误")
+NOT_LOGIN_ERROR(40100, "未登录")
+NO_AUTH_ERROR(40101, "无权限")
+NOT_FOUND_ERROR(40400, "请求数据不存在")
+SYSTEM_ERROR(50000, "系统内部异常")
+OPERATION_ERROR(50001, "操作失败")
 ```
 
 ### QueryWrapper Pattern (MyBatis-Flex)
@@ -137,66 +181,81 @@ queryWrapper.like("name", name, StrUtil.isNotBlank(name));
 queryWrapper.orderBy(sortField, isAsc, StrUtil.isNotBlank(sortField));
 ```
 
-### AI Service Pattern (LangChain4j)
-```java
-public interface AiCodeGeneratorService {
-    @SystemMessage(fromResource = "prompt/codegen-html-system-prompt.txt")
-    HtmlCodeResult generateHtmlCode(String userMessage);
-    
-    Flux<String> generateHtmlCodeStream(String userMessage);
-}
-```
-
 ## Best Practices
 
 - **Dependency Injection**: Use `@Resource` for field injection
-- **Lombok**: Use `@Data`, `@Slf4j`, `@Builder`
+- **Lombok**: Use `@Data`, `@Slf4j`, `@Builder`, `@NoArgsConstructor`, `@AllArgsConstructor`
 - **Error Handling**: Use `ThrowUtils.throwIf()` for assertion-style checks
 - **Transactions**: `@Transactional` on service methods modifying data
-- **REST**: Plural nouns for resources (e.g., `/users`, `/orders`)
 - **Permissions**: Use `@AuthCheck(mustRole = UserConstant.ADMIN_ROLE)` for admin endpoints
-- **Data Masking**: Return `UserVO`/`AppVO` for public data, `User`/`App` only for admin
-- **Design Patterns**: Use Strategy for parsers, Template Method for savers, Facade for unified entry
+- **Data Masking**: Return `UserVO`/`AppVO` for public data, entities only for admin
+- **Code Organization**: Use `// region ... // endregion` comments to group related methods
+- **Design Patterns**: Strategy for parsers, Template Method for savers, Facade for unified entry
 
-## API Endpoints
+## 注意事项
 
-### User Module
-| Method | Path | Description | Auth |
-|--------|------|-------------|------|
-| POST | `/user/register` | User registration | None |
-| POST | `/user/login` | User login | None |
-| POST | `/user/logout` | User logout | Login required |
-| GET | `/user/get/login` | Get current user | Login required |
-| GET | `/user/get/vo/{id}` | Get user by id (masked) | None |
-| POST | `/user/add` | Create user | Admin |
-| POST | `/user/delete` | Delete user | Admin |
-| POST | `/user/update` | Update user | Admin |
-| POST | `/user/list/page/vo` | List users (paginated) | Admin |
+### 代码生成相关
 
-### App Module
-| Method | Path | Description | Auth |
-|--------|------|-------------|------|
-| POST | `/app/add` | Create application | Login required |
-| POST | `/app/update` | Update application (owner) | Owner |
-| POST | `/app/delete` | Delete application (owner or admin) | Owner/Admin |
-| GET | `/app/get/vo` | Get application with user info | None |
-| POST | `/app/my/list/page/vo` | List my applications (paginated) | Login required |
-| POST | `/app/good/list/page/vo` | List featured applications | None |
-| GET | `/app/chat/gen/code` | AI code generation (SSE stream) | Owner |
-| POST | `/app/deploy` | Deploy application | Owner |
+1. **目录清理**
+   - `CodeFileSaverTemplate.buildUniqueDir()` 在生成代码前会先删除旧目录
+   - 相同 `appId` 重复生成代码时，旧文件会被完全清理，不会污染新输出
+   - 目录命名格式: `{codeGenType}_{appId}` (如 `HTML_1`, `MULTI_FILE_2`)
 
-### Admin Endpoints
-| Method | Path | Description | Auth |
-|--------|------|-------------|------|
-| POST | `/app/admin/delete` | Delete any application | Admin |
-| POST | `/app/admin/update` | Update application (limited fields) | Admin |
-| POST | `/app/admin/list/page/vo` | List all applications (paginated) | Admin |
-| GET | `/app/admin/get/vo` | Get application details | Admin |
+2. **SSE 流式响应**
+   - 使用 `Flux<ServerSentEvent<String>>` 返回流式数据
+   - 前端通过 `EventSource` 接收，`event: done` 表示生成完成
+   - 数据格式: `data: {"d":"实际内容"}`
 
-### Static Resources
-| Method | Path | Description | Auth |
-|--------|------|-------------|------|
-| GET | `/static/{deployKey}/**` | Serve deployed application files | None |
+### 常见陷阱
+
+1. **BeanUtil.copyProperties 顺序**
+   - 复制属性后设置默认值，不要再调用 `copyProperties`，否则会覆盖默认值
+   - 正确: 先 copyProperties，再设置默认值
+   - 错误: copyProperties → 设置默认值 → copyProperties (覆盖默认值)
+
+2. **MyBatis-Flex 逻辑删除**
+   - Entity 中使用 `@Column(value = "isDelete", isLogicDelete = true)`
+   - 查询时自动过滤 `isDelete=1` 的记录
+   - 物理删除需要手动处理
+
+3. **文件路径处理**
+   - 使用 `File.separator` 而非硬编码 `/` 或 `\\`
+   - 使用 `StrUtil.format()` 构建路径，避免字符串拼接
+   - 目录操作前检查 `FileUtil.exist()`
+
+### AI 生成相关
+
+1. **SSE 流式响应**
+   - 使用 `Flux<ServerSentEvent<String>>` 返回流式数据
+   - 前端通过 `EventSource` 接收
+   - 事件类型：`session` (返回 sessionId)、`done` (生成完成)
+   - 数据格式：`data: {"d":"实际内容"}`
+
+2. **生成中断机制**
+   - 每次生成创建唯一 sessionId
+   - `GenerationSessionManager` 管理活跃会话
+   - 前端调用 `POST /api/app/chat/stop?sessionId=xxx` 停止生成
+   - 后端通过 `Disposable.dispose()` 中断 Flux 流
+
+3. **应用删除级联清理**
+   - 删除应用时自动清理关联文件
+   - 清理预览目录：`tmp/code_output/{codeGenType}_{appId}/`
+   - 清理部署目录：`tmp/code_deploy/{deployKey}/`
+
+4. **环境变量配置**
+   - `app.deploy.host`: 已部署应用访问域名
+   - `app.preview.host`: 预览应用访问域名
+   - 通过 `AppConfig` 类读取配置
+
+
+## API Endpoints Summary
+
+| Module | Key Endpoints | Auth |
+|--------|---------------|------|
+| User | `/user/register`, `/user/login`, `/user/logout`, `/user/get/login` | Mixed |
+| App | `/app/add`, `/app/update`, `/app/delete`, `/app/deploy`, `/app/chat/gen/code` (SSE) | Owner |
+| Admin | `/user/add`, `/user/delete`, `/app/admin/*` | Admin |
+| Static | `/static/{deployKey}/**`, `/preview/{codeGenType_appId}/**` | None |
 
 ## Directory Structure
 
@@ -206,8 +265,7 @@ tmp/
 │   ├── HTML_1/            # Format: codeGenType_appId
 │   └── MULTI_FILE_2/
 └── code_deploy/           # Deployed applications
-    ├── aB3xYz/           # Format: deployKey
-    └── xY7zAb/
+    └── aB3xYz/           # Format: deployKey
 ```
 
 ## Constants
@@ -217,11 +275,10 @@ tmp/
 ADMIN_ROLE = "admin"
 
 // AppConstant
-GOOD_APP_PRIORITY = 99       // Featured application priority
-DEFAULT_APP_PRIORITY = 0     // Default priority
+GOOD_APP_PRIORITY = 99
+DEFAULT_APP_PRIORITY = 0
 CODE_OUTPUT_ROOT_DIR = user.dir/tmp/code_output
 CODE_DEPLOY_ROOT_DIR = user.dir/tmp/code_deploy
-CODE_DEPLOY_HOST = http://localhost
 
 // CodeGenTypeEnum
 HTML("HTML")                 // Single HTML file

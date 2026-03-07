@@ -21,4 +21,24 @@ public class AppUpdateRequest implements Serializable {
      * 应用名称
      */
     private String appName;
+
+    /**
+     * 应用封面
+     */
+    private String cover;
+
+    /**
+     * 应用初始化的 prompt
+     */
+    private String initPrompt;
+
+    /**
+     * 代码生成类型（枚举）
+     */
+    private String codeGenType;
+
+    /**
+     * 优先级
+     */
+    private Integer priority;
 }

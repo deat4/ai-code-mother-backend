@@ -184,3 +184,75 @@ Spring Boot 3.5.11 · Java 21 · MySQL · MyBatis-Flex · LangChain4j · Reactor
 ## License
 
 MIT
+
+## 最近更新
+
+### 2026-03-07
+
+**修复的关键Bug：**
+
+1. **AppServiceImpl.addApp() 重复代码错误**
+   - 问题：第72行存在重复的 `BeanUtil.copyProperties()`，会覆盖刚设置的默认值（cover、codeGenType、priority）
+   - 影响：创建应用时默认封面等设置被覆盖
+   - 修复：删除重复代码块
+
+2. **CodeFileSaverTemplate 目录清理缺失**
+   - 问题：使用相同 `appId` 第二次生成代码时，旧文件没有被清理
+   - 影响：第二次生成的代码会被第一次的旧文件污染
+   - 修复：在 `buildUniqueDir()` 中添加 `FileUtil.del(dirPath)` 先删除旧目录
+
+**新增功能：**
+
+3. **环境变量配置支持**
+   - 新增 `AppConfig` 配置类，支持通过 `application.yml` 配置部署和预览域名
+   - 配置项：`app.deploy.host` 和 `app.preview.host`
+   - 解决前端域名配置问题
+
+4. **应用删除级联清理**
+   - 删除应用时自动清理关联文件
+   - 清理预览目录：`tmp/code_output/{codeGenType}_{appId}/`
+   - 清理部署目录：`tmp/code_deploy/{deployKey}/`
+   - 避免垃圾数据堆积
+
+5. **AI 生成中断功能**
+   - 新增 `GenerationSessionManager` 会话管理器
+   - 支持 SSE 流式中断
+   - 新增 `POST /api/app/chat/stop?sessionId=xxx` 端点
+   - 前端可随时停止 AI 生成
+**新增功能：**
+
+3. **环境变量配置支持**
+   - 新增 `AppConfig` 配置类，支持通过 `application.yml` 配置部署和预览域名
+   - 配置项：`app.deploy.host` 和 `app.preview.host`
+   - 解决前端域名配置问题
+
+4. **应用删除级联清理**
+   - 删除应用时自动清理关联文件
+   - 清理预览目录：`tmp/code_output/{codeGenType}_{appId}/`
+   - 清理部署目录：`tmp/code_deploy/{deployKey}/`
+   - 避免垃圾数据堆积
+
+5. **AI 生成中断功能**
+   - 新增 `GenerationSessionManager` 会话管理器
+   - 支持 SSE 流式中断
+   - 新增 `POST /api/app/chat/stop?sessionId=xxx` 端点
+   - 前端可随时停止 AI 生成
+**新增功能：**
+
+3. **环境变量配置支持**
+   - 新增 `AppConfig` 配置类，支持通过 `application.yml` 配置部署和预览域名
+   - 配置项：`app.deploy.host` 和 `app.preview.host`
+   - 解决前端域名配置问题
+
+4. **应用删除级联清理**
+   - 删除应用时自动清理关联文件
+   - 清理预览目录：`tmp/code_output/{codeGenType}_{appId}/`
+   - 清理部署目录：`tmp/code_deploy/{deployKey}/`
+   - 避免垃圾数据堆积
+
+5. **AI 生成中断功能**
+   - 新增 `GenerationSessionManager` 会话管理器
+   - 支持 SSE 流式中断
+   - 新增 `POST /api/app/chat/stop?sessionId=xxx` 端点
+   - 前端可随时停止 AI 生成
+**根本原因：** 这两个bug组合导致"第一次使用正常，第二次使用出问题"的现象。

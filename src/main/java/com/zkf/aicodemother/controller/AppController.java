@@ -24,6 +24,16 @@ import com.zkf.aicodemother.model.entity.User;
 import com.zkf.aicodemother.model.vo.AppVO;
 import com.zkf.aicodemother.service.AppService;
 import com.zkf.aicodemother.service.UserService;
+import com.zkf.aicodemother.core.GenerationSessionManager;
+import lombok.extern.slf4j.Slf4j;
+
+import lombok.extern.slf4j.Slf4j;
+
+
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+
+
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
@@ -44,6 +54,8 @@ import java.util.Map;
 /**
  * 应用 控制层
  */
+@Slf4j
+
 @RestController
 @RequestMapping("/app")
 public class AppController {
@@ -53,6 +65,18 @@ public class AppController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private GenerationSessionManager sessionManager;
+
+
+    @Resource
+    private GenerationSessionManager sessionManager;
+
+
+    @Resource
+    private GenerationSessionManager sessionManager;
+
 
     // region 用户接口
 
@@ -287,11 +311,12 @@ public class AppController {
 
     /**
      * 应用聊天生成代码（流式 SSE）
+     * 支持 session 模式，可通过 stopGeneration 接口中断
      *
      * @param appId   应用 ID
      * @param message 用户消息
      * @param request 请求对象
-     * @return 生成结果流
+     * @return 生成结果流（首个事件为 sessionId）
      */
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> chatToGenCode(
@@ -303,44 +328,69 @@ public class AppController {
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
+        
+        // 创建会话 ID
+        String sessionId = sessionManager.createSession();
+        
         // 调用服务生成代码（流式）
         Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
-        // 转换为 ServerSentEvent 格式
-        return contentFlux
-                .map(chunk -> {
-                    // 将内容包装成JSON对象
-                    Map<String, String> wrapper = Map.of("d", chunk);
-                    String jsonData = JSONUtil.toJsonStr(wrapper);
-                    return ServerSentEvent.<String>builder()
-                            .data(jsonData)
-                            .build();
+        
+        // 构建带会话管理的 SSE 流
+        return Flux.push(sink -> {
+                    // 发送 sessionId 作为第一个事件
+                    Map<String, String> sessionWrapper = Map.of("sessionId", sessionId);
+                    String sessionJson = JSONUtil.toJsonStr(sessionWrapper);
+                    sink.next(ServerSentEvent.<String>builder()
+                            .event("session")
+                            .data(sessionJson)
+                            .build());
+                    
+                    // 订阅内容流
+                    Disposable subscription = contentFlux
+                            .map(chunk -> {
+                                Map<String, String> wrapper = Map.of("d", chunk);
+                                String jsonData = JSONUtil.toJsonStr(wrapper);
+                                return ServerSentEvent.<String>builder()
+                                        .data(jsonData)
+                                        .build();
+                            })
+                            .doOnNext(sink::next)
+                            .doOnComplete(() -> {
+                                // 发送结束事件
+                                sink.next(ServerSentEvent.<String>builder()
+                                        .event("done")
+                                        .data("")
+                                        .build());
+                                // 清理会话
+                                sessionManager.removeSession(sessionId);
+                            })
+                            .doOnError(e -> {
+                                log.error("生成代码出错: {}", e.getMessage());
+                                sessionManager.removeSession(sessionId);
+                            })
+                            .doOnCancel(() -> {
+                                log.info("生成被取消: {}", sessionId);
+                                sessionManager.removeSession(sessionId);
+                            })
+                            .subscribe();
+                    
+                    // 注册会话
+                    sessionManager.registerSession(sessionId, subscription);
                 })
-                .concatWith(Mono.just(
-                        // 发送结束事件
-                        ServerSentEvent.<String>builder()
-                                .event("done")
-                                .data("")
-                                .build()
-                ));
+                .doOnCancel(() -> sessionManager.cancelSession(sessionId));
     }
 
     /**
-     * 部署应用
+     * 停止 AI 生成
      *
-     * @param appDeployRequest 部署请求
-     * @param request          请求对象
-     * @return 部署后的访问 URL
+     * @param sessionId 会话 ID
+     * @return 操作结果
      */
-    @PostMapping("/deploy")
-    public BaseResponse<String> deployApp(@RequestBody com.zkf.aicodemother.model.dto.app.AppDeployRequest appDeployRequest, HttpServletRequest request) {
-        ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR);
-        Long appId = appDeployRequest.getAppId();
-        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
-        // 获取当前登录用户
-        User loginUser = userService.getLoginUser(request);
-        // 调用服务部署应用
-        String deployUrl = appService.deployApp(appId, loginUser);
-        return ResultUtils.success(deployUrl);
+    @PostMapping("/chat/stop")
+    public BaseResponse<Boolean> stopGeneration(@RequestParam String sessionId) {
+        ThrowUtils.throwIf(StrUtil.isBlank(sessionId), ErrorCode.PARAMS_ERROR, "会话ID不能为空");
+        boolean success = appService.stopGeneration(sessionId);
+        return ResultUtils.success(success);
     }
 
     // endregion

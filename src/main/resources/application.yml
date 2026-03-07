@@ -25,3 +25,12 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
+# app config
+app:
+  deploy:
+    # 已部署应用访问域名
+    host: http://localhost:8123/api/static
+  preview:
+    # 预览应用访问域名
+    host: http://localhost:8123/api/preview

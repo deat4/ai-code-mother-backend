@@ -27,6 +27,8 @@ public interface AppConstant {
 
     /**
      * 应用部署域名
+     * @deprecated 已移至 application.yml 配置，请使用 AppConfig.getDeploy().getHost()
      */
+    @Deprecated
     String CODE_DEPLOY_HOST = "http://localhost";
 }

@@ -1,11 +1,17 @@
 package com.zkf.aicodemother.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.zkf.aicodemother.constant.AppConstant;
+import com.zkf.aicodemother.config.AppConfig;
+import com.zkf.aicodemother.core.CodeGenTypeEnum;
+import com.zkf.aicodemother.core.GenerationSessionManager;
+import com.zkf.aicodemother.core.GenerationSessionManager;
+
 import com.zkf.aicodemother.exception.BusinessException;
 import com.zkf.aicodemother.exception.ErrorCode;
 import com.zkf.aicodemother.exception.ThrowUtils;
@@ -22,9 +28,12 @@ import com.zkf.aicodemother.model.vo.UserVO;
 import com.zkf.aicodemother.service.AppService;
 import com.zkf.aicodemother.service.UserService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +43,7 @@ import java.util.stream.Collectors;
 /**
  * 应用 服务层实现
  */
+@Slf4j
 @Service
 public class AppServiceImpl implements AppService {
 
@@ -42,6 +52,13 @@ public class AppServiceImpl implements AppService {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private AppConfig appConfig;
+
+    @Resource
+    private GenerationSessionManager sessionManager;
+
 
     @Override
     public Page<App> page(Page<App> page, QueryWrapper queryWrapper) {
@@ -62,7 +79,23 @@ public class AppServiceImpl implements AppService {
         app.setUpdateTime(LocalDateTime.now());
         app.setEditTime(LocalDateTime.now());
         app.setIsDelete(0);
-        // 设置默认优先级
+        // 设置默认封面
+        if (StrUtil.isBlank(app.getCover())) {
+            app.setCover("https://picsum.photos/800/600?random=1");
+        }
+
+        // 设置默认代码生成类型
+        String codeGenType = app.getCodeGenType();
+        if (StrUtil.isBlank(codeGenType)) {
+            app.setCodeGenType(CodeGenTypeEnum.HTML.getValue());
+        } else {
+            // 校验 codeGenType 是否有效
+            CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
+            ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR, 
+                "不支持的代码生成类型: " + codeGenType + "，仅支持 HTML 和 MULTI_FILE");
+            // 统一转换为大写格式
+            app.setCodeGenType(codeGenTypeEnum.getValue());
+        }
         if (app.getPriority() == null) {
             app.setPriority(AppConstant.DEFAULT_APP_PRIORITY);
         }
@@ -83,6 +116,10 @@ public class AppServiceImpl implements AppService {
         App app = new App();
         app.setId(appUpdateRequest.getId());
         app.setAppName(appUpdateRequest.getAppName());
+        app.setCover(appUpdateRequest.getCover());
+        app.setInitPrompt(appUpdateRequest.getInitPrompt());
+        app.setCodeGenType(appUpdateRequest.getCodeGenType());
+        app.setPriority(appUpdateRequest.getPriority());
         app.setEditTime(LocalDateTime.now());
         
         return appMapper.update(app) > 0;
@@ -113,6 +150,9 @@ public class AppServiceImpl implements AppService {
         ThrowUtils.throwIf(existingApp == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
         ThrowUtils.throwIf(!existingApp.getUserId().equals(userId), ErrorCode.NO_AUTH_ERROR, "无权限删除此应用");
         
+        // 清理关联文件
+        cleanAppFiles(existingApp);
+        
         return appMapper.deleteById(id) > 0;
     }
 
@@ -123,7 +163,47 @@ public class AppServiceImpl implements AppService {
         App existingApp = appMapper.selectOneById(id);
         ThrowUtils.throwIf(existingApp == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
         
+        // 清理关联文件
+        cleanAppFiles(existingApp);
+        
         return appMapper.deleteById(id) > 0;
+    }
+
+    /**
+     * 清理应用关联的文件
+     * @param app 应用实体
+     */
+    private void cleanAppFiles(App app) {
+        if (app == null || app.getId() == null) {
+            return;
+        }
+        
+        // 1. 清理预览目录: tmp/code_output/{codeGenType}_{appId}/
+        String codeGenType = app.getCodeGenType();
+        if (StrUtil.isNotBlank(codeGenType)) {
+            String previewDir = StrUtil.format("{}{}{}_{}", 
+                AppConstant.CODE_OUTPUT_ROOT_DIR, 
+                File.separator, 
+                codeGenType, 
+                app.getId());
+            if (FileUtil.exist(previewDir)) {
+                FileUtil.del(previewDir);
+                log.info("已清理预览目录: {}", previewDir);
+            }
+        }
+        
+        // 2. 清理部署目录: tmp/code_deploy/{deployKey}/
+        String deployKey = app.getDeployKey();
+        if (StrUtil.isNotBlank(deployKey)) {
+            String deployDir = StrUtil.format("{}{}{}", 
+                AppConstant.CODE_DEPLOY_ROOT_DIR, 
+                File.separator, 
+                deployKey);
+            if (FileUtil.exist(deployDir)) {
+                FileUtil.del(deployDir);
+                log.info("已清理部署目录: {}", deployDir);
+            }
+        }
     }
 
     @Override
@@ -308,7 +388,9 @@ public class AppServiceImpl implements AppService {
         com.zkf.aicodemother.core.CodeGenTypeEnum codeGenTypeEnum = 
             com.zkf.aicodemother.core.CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
         if (codeGenTypeEnum == null) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
+            // 如果 codeGenType 无效，默认使用 HTML
+            codeGenTypeEnum = com.zkf.aicodemother.core.CodeGenTypeEnum.HTML;
+            log.warn("应用 {} 的代码生成类型无效: {}，使用默认值 HTML", appId, codeGenTypeStr);
         }
         
         // 5. 调用 AI 生成代码（流式）
@@ -365,6 +447,12 @@ public class AppServiceImpl implements AppService {
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
         
         // 9. 返回可访问的 URL
-        return String.format("%s/%s/", com.zkf.aicodemother.constant.AppConstant.CODE_DEPLOY_HOST, deployKey);
+        return String.format("%s/%s/", appConfig.getDeploy().getHost(), deployKey);
     }
+
+    @Override
+    public boolean stopGeneration(String sessionId) {
+        return sessionManager.cancelSession(sessionId);
+    }
+
 }
