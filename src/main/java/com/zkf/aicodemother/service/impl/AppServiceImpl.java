@@ -10,8 +10,6 @@ import com.zkf.aicodemother.constant.AppConstant;
 import com.zkf.aicodemother.config.AppConfig;
 import com.zkf.aicodemother.core.CodeGenTypeEnum;
 import com.zkf.aicodemother.core.GenerationSessionManager;
-import com.zkf.aicodemother.core.GenerationSessionManager;
-
 import com.zkf.aicodemother.exception.BusinessException;
 import com.zkf.aicodemother.exception.ErrorCode;
 import com.zkf.aicodemother.exception.ThrowUtils;
@@ -27,12 +25,15 @@ import com.zkf.aicodemother.model.vo.AppVO;
 import com.zkf.aicodemother.model.vo.UserVO;
 import com.zkf.aicodemother.service.AppService;
 import com.zkf.aicodemother.service.UserService;
+import com.zkf.aicodemother.service.ChatHistoryService;
+import com.zkf.aicodemother.service.AppVersionService;
+import com.zkf.aicodemother.model.enums.MessageTypeEnum;
+
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,6 +60,14 @@ public class AppServiceImpl implements AppService {
     @Resource
     private GenerationSessionManager sessionManager;
 
+    @Resource
+    private ChatHistoryService chatHistoryService;
+
+    @Resource
+    private AppVersionService appVersionService;
+
+    @Resource
+    private com.zkf.aicodemother.core.AiCodeGeneratorFacade aiCodeGeneratorFacade;
 
     @Override
     public Page<App> page(Page<App> page, QueryWrapper queryWrapper) {
@@ -71,7 +80,7 @@ public class AppServiceImpl implements AppService {
         String appName = appAddRequest.getAppName();
         String initPrompt = appAddRequest.getInitPrompt();
         ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), ErrorCode.PARAMS_ERROR, "初始化 prompt 不能为空");
-        
+
         App app = new App();
         BeanUtil.copyProperties(appAddRequest, app);
         app.setUserId(userId);
@@ -91,15 +100,15 @@ public class AppServiceImpl implements AppService {
         } else {
             // 校验 codeGenType 是否有效
             CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
-            ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR, 
-                "不支持的代码生成类型: " + codeGenType + "，仅支持 HTML 和 MULTI_FILE");
+            ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR,
+                    "不支持的代码生成类型: " + codeGenType + "，仅支持 HTML 和 MULTI_FILE");
             // 统一转换为大写格式
             app.setCodeGenType(codeGenTypeEnum.getValue());
         }
         if (app.getPriority() == null) {
             app.setPriority(AppConstant.DEFAULT_APP_PRIORITY);
         }
-        
+
         boolean result = appMapper.insert(app) > 0;
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "创建应用失败");
         return app.getId();
@@ -108,11 +117,11 @@ public class AppServiceImpl implements AppService {
     @Override
     public boolean updateApp(AppUpdateRequest appUpdateRequest, Long userId) {
         ThrowUtils.throwIf(appUpdateRequest == null || appUpdateRequest.getId() == null, ErrorCode.PARAMS_ERROR);
-        
+
         App existingApp = appMapper.selectOneById(appUpdateRequest.getId());
         ThrowUtils.throwIf(existingApp == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
         ThrowUtils.throwIf(!existingApp.getUserId().equals(userId), ErrorCode.NO_AUTH_ERROR, "无权限修改此应用");
-        
+
         App app = new App();
         app.setId(appUpdateRequest.getId());
         app.setAppName(appUpdateRequest.getAppName());
@@ -121,51 +130,51 @@ public class AppServiceImpl implements AppService {
         app.setCodeGenType(appUpdateRequest.getCodeGenType());
         app.setPriority(appUpdateRequest.getPriority());
         app.setEditTime(LocalDateTime.now());
-        
+
         return appMapper.update(app) > 0;
     }
 
     @Override
     public boolean updateAppByAdmin(AppUpdateAdminRequest appUpdateAdminRequest) {
         ThrowUtils.throwIf(appUpdateAdminRequest == null || appUpdateAdminRequest.getId() == null, ErrorCode.PARAMS_ERROR);
-        
+
         App existingApp = appMapper.selectOneById(appUpdateAdminRequest.getId());
         ThrowUtils.throwIf(existingApp == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
-        
+
         App app = new App();
         app.setId(appUpdateAdminRequest.getId());
         app.setAppName(appUpdateAdminRequest.getAppName());
         app.setCover(appUpdateAdminRequest.getCover());
         app.setPriority(appUpdateAdminRequest.getPriority());
         app.setEditTime(LocalDateTime.now());
-        
+
         return appMapper.update(app) > 0;
     }
 
     @Override
     public boolean deleteApp(Long id, Long userId) {
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
-        
+
         App existingApp = appMapper.selectOneById(id);
         ThrowUtils.throwIf(existingApp == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
         ThrowUtils.throwIf(!existingApp.getUserId().equals(userId), ErrorCode.NO_AUTH_ERROR, "无权限删除此应用");
-        
+
         // 清理关联文件
         cleanAppFiles(existingApp);
-        
+
         return appMapper.deleteById(id) > 0;
     }
 
     @Override
     public boolean deleteAppByAdmin(Long id) {
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
-        
+
         App existingApp = appMapper.selectOneById(id);
         ThrowUtils.throwIf(existingApp == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
-        
+
         // 清理关联文件
         cleanAppFiles(existingApp);
-        
+
         return appMapper.deleteById(id) > 0;
     }
 
@@ -177,33 +186,43 @@ public class AppServiceImpl implements AppService {
         if (app == null || app.getId() == null) {
             return;
         }
-        
+
         // 1. 清理预览目录: tmp/code_output/{codeGenType}_{appId}/
         String codeGenType = app.getCodeGenType();
         if (StrUtil.isNotBlank(codeGenType)) {
-            String previewDir = StrUtil.format("{}{}{}_{}", 
-                AppConstant.CODE_OUTPUT_ROOT_DIR, 
-                File.separator, 
-                codeGenType, 
-                app.getId());
+            String previewDir = StrUtil.format("{}{}{}_{}",
+                    AppConstant.CODE_OUTPUT_ROOT_DIR,
+                    File.separator,
+                    codeGenType,
+                    app.getId());
             if (FileUtil.exist(previewDir)) {
                 FileUtil.del(previewDir);
                 log.info("已清理预览目录: {}", previewDir);
             }
         }
-        
+
         // 2. 清理部署目录: tmp/code_deploy/{deployKey}/
         String deployKey = app.getDeployKey();
         if (StrUtil.isNotBlank(deployKey)) {
-            String deployDir = StrUtil.format("{}{}{}", 
-                AppConstant.CODE_DEPLOY_ROOT_DIR, 
-                File.separator, 
-                deployKey);
+            String deployDir = StrUtil.format("{}{}{}",
+                    AppConstant.CODE_DEPLOY_ROOT_DIR,
+                    File.separator,
+                    deployKey);
             if (FileUtil.exist(deployDir)) {
                 FileUtil.del(deployDir);
                 log.info("已清理部署目录: {}", deployDir);
             }
-        }
+        } // 【修复点】：此处补全了缺失的闭合括号
+
+        // 3. 清理对话历史
+        chatHistoryService.deleteByAppId(app.getId());
+        log.info("已清理对话历史: appId={}", app.getId());
+
+        // 4. 清理应用版本
+        appVersionService.deleteByAppId(app.getId());
+        log.info("已清理应用版本: appId={}", app.getId());
+
+        // 【修复点】：删除了尾部多余的重复清理代码
     }
 
     @Override
@@ -222,36 +241,36 @@ public class AppServiceImpl implements AppService {
     @Override
     public Page<AppVO> listMyAppByPage(AppQueryRequest appQueryRequest, Long userId) {
         ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR);
-        
+
         int current = appQueryRequest.getCurrent();
         int pageSize = Math.min(appQueryRequest.getPageSize(), 20);
-        
+
         // 设置当前用户 id，只查询当前用户的应用
         appQueryRequest.setUserId(userId);
-        
+
         // 使用统一的查询条件构建方法
         QueryWrapper queryWrapper = getQueryWrapper(appQueryRequest);
-        
+
         Page<App> appPage = appMapper.paginate(Page.of(current, pageSize), queryWrapper);
-        
+
         // 数据封装，使用批量查询避免 N+1 问题
         Page<AppVO> appVOPage = new Page<>(current, pageSize, appPage.getTotalRow());
         List<AppVO> appVOList = getAppVOList(appPage.getRecords());
         appVOPage.setRecords(appVOList);
-        
+
         return appVOPage;
     }
 
     @Override
     public Page<App> listAppByPageForAdmin(AppQueryAdminRequest appQueryAdminRequest) {
         ThrowUtils.throwIf(appQueryAdminRequest == null, ErrorCode.PARAMS_ERROR);
-        
+
         int current = appQueryAdminRequest.getCurrent();
         int pageSize = appQueryAdminRequest.getPageSize();
-        
+
         QueryWrapper queryWrapper = getQueryWrapper(appQueryAdminRequest);
         queryWrapper.orderBy("createTime", false);
-        
+
         return appMapper.paginate(Page.of(current, pageSize), queryWrapper);
     }
 
@@ -299,7 +318,7 @@ public class AppServiceImpl implements AppService {
         Long userId = appQueryRequest.getUserId();
         String sortField = appQueryRequest.getSortField();
         String sortOrder = appQueryRequest.getSortOrder();
-        
+
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("id", id, id != null)
                 .like("appName", appName, StrUtil.isNotBlank(appName))
@@ -309,12 +328,12 @@ public class AppServiceImpl implements AppService {
                 .eq("deployKey", deployKey, StrUtil.isNotBlank(deployKey))
                 .eq("priority", priority, priority != null)
                 .eq("userId", userId, userId != null);
-        
+
         // 排序
         if (StrUtil.isNotBlank(sortField)) {
             queryWrapper.orderBy(sortField, "ascend".equals(sortOrder));
         }
-        
+
         return queryWrapper;
     }
 
@@ -340,23 +359,23 @@ public class AppServiceImpl implements AppService {
     @Override
     public Page<AppVO> listFeaturedAppByPage(AppQueryRequest appQueryRequest) {
         ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR);
-        
+
         int current = appQueryRequest.getCurrent();
         int pageSize = Math.min(appQueryRequest.getPageSize(), 20);
-        
+
         // 只查询精选的应用
         appQueryRequest.setPriority(AppConstant.GOOD_APP_PRIORITY);
-        
+
         // 使用统一的查询条件构建方法
         QueryWrapper queryWrapper = getQueryWrapper(appQueryRequest);
-        
+
         Page<App> appPage = appMapper.paginate(Page.of(current, pageSize), queryWrapper);
-        
+
         // 数据封装，使用批量查询避免 N+1 问题
         Page<AppVO> appVOPage = new Page<>(current, pageSize, appPage.getTotalRow());
         List<AppVO> appVOList = getAppVOList(appPage.getRecords());
         appVOPage.setRecords(appVOList);
-        
+
         return appVOPage;
     }
 
@@ -365,36 +384,59 @@ public class AppServiceImpl implements AppService {
         return appMapper.update(app) > 0;
     }
 
-    @Resource
-    private com.zkf.aicodemother.core.AiCodeGeneratorFacade aiCodeGeneratorFacade;
-
     @Override
     public reactor.core.publisher.Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // 1. 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
-        
+
         // 2. 查询应用信息
         App app = this.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
-        
+
         // 3. 验证用户是否有权限访问该应用，仅本人可以生成代码
         if (!app.getUserId().equals(loginUser.getId())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
         }
-        
+
         // 4. 获取应用的代码生成类型
         String codeGenTypeStr = app.getCodeGenType();
-        com.zkf.aicodemother.core.CodeGenTypeEnum codeGenTypeEnum = 
-            com.zkf.aicodemother.core.CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
+        com.zkf.aicodemother.core.CodeGenTypeEnum codeGenTypeEnum =
+                com.zkf.aicodemother.core.CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
         if (codeGenTypeEnum == null) {
             // 如果 codeGenType 无效，默认使用 HTML
             codeGenTypeEnum = com.zkf.aicodemother.core.CodeGenTypeEnum.HTML;
             log.warn("应用 {} 的代码生成类型无效: {}，使用默认值 HTML", appId, codeGenTypeStr);
         }
-        
-        // 5. 调用 AI 生成代码（流式）
-        return aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+
+        // 5. 保存用户消息到对话历史
+        chatHistoryService.addChatMessage(appId, message, MessageTypeEnum.USER.getValue(), loginUser.getId());
+
+        // 6. 调用 AI 生成代码（流式），传递 userId 用于创建版本
+        reactor.core.publisher.Flux<String> contentFlux = aiCodeGeneratorFacade
+                .generateAndSaveCodeStream(message, codeGenTypeEnum, appId, loginUser.getId());
+
+        // 7. 收集 AI 响应内容并在完成后记录到对话历史
+        StringBuilder aiResponseBuilder = new StringBuilder();
+        return contentFlux
+                .map(chunk -> {
+                    // 收集 AI 响应内容
+                    aiResponseBuilder.append(chunk);
+                    return chunk;
+                })
+                .doOnComplete(() -> {
+                    // 流式响应完成后，保存 AI 消息到对话历史
+                    String aiResponse = aiResponseBuilder.toString();
+                    if (StrUtil.isNotBlank(aiResponse)) {
+                        chatHistoryService.addChatMessage(appId, aiResponse, MessageTypeEnum.AI.getValue(), loginUser.getId());
+                    }
+                })
+                .doOnError(error -> {
+                    // 如果 AI 回复失败，也要记录错误消息
+                    String errorMessage = "AI 回复失败: " + error.getMessage();
+                    chatHistoryService.addChatMessage(appId, errorMessage, MessageTypeEnum.AI.getValue(), loginUser.getId());
+                    log.error("AI 生成代码失败: appId={}, error={}", appId, error.getMessage());
+                });
     }
 
     @Override
@@ -402,34 +444,34 @@ public class AppServiceImpl implements AppService {
         // 1. 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
-        
+
         // 2. 查询应用信息
         App app = this.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
-        
+
         // 3. 验证用户是否有权限部署该应用，仅本人可以部署
         if (!app.getUserId().equals(loginUser.getId())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限部署该应用");
         }
-        
+
         // 4. 检查是否已有 deployKey
         String deployKey = app.getDeployKey();
         // 没有则生成 6 位 deployKey（大小写字母 + 数字）
         if (StrUtil.isBlank(deployKey)) {
             deployKey = cn.hutool.core.util.RandomUtil.randomString(6);
         }
-        
+
         // 5. 获取代码生成类型，构建源目录路径
         String codeGenType = app.getCodeGenType();
         String sourceDirName = codeGenType + "_" + appId;
         String sourceDirPath = com.zkf.aicodemother.constant.AppConstant.CODE_OUTPUT_ROOT_DIR + java.io.File.separator + sourceDirName;
-        
+
         // 6. 检查源目录是否存在
         java.io.File sourceDir = new java.io.File(sourceDirPath);
         if (!sourceDir.exists() || !sourceDir.isDirectory()) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用代码不存在，请先生成代码");
         }
-        
+
         // 7. 复制文件到部署目录
         String deployDirPath = com.zkf.aicodemother.constant.AppConstant.CODE_DEPLOY_ROOT_DIR + java.io.File.separator + deployKey;
         try {
@@ -437,7 +479,7 @@ public class AppServiceImpl implements AppService {
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "部署失败：" + e.getMessage());
         }
-        
+
         // 8. 更新应用的 deployKey 和部署时间
         App updateApp = new App();
         updateApp.setId(appId);
@@ -445,7 +487,7 @@ public class AppServiceImpl implements AppService {
         updateApp.setDeployedTime(java.time.LocalDateTime.now());
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
-        
+
         // 9. 返回可访问的 URL
         return String.format("%s/%s/", appConfig.getDeploy().getHost(), deployKey);
     }
@@ -454,5 +496,4 @@ public class AppServiceImpl implements AppService {
     public boolean stopGeneration(String sessionId) {
         return sessionManager.cancelSession(sessionId);
     }
-
 }

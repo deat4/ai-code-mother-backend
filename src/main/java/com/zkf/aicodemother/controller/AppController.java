@@ -45,6 +45,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -69,13 +70,6 @@ public class AppController {
     @Resource
     private GenerationSessionManager sessionManager;
 
-
-    @Resource
-    private GenerationSessionManager sessionManager;
-
-
-    @Resource
-    private GenerationSessionManager sessionManager;
 
 
     // region 用户接口
@@ -129,10 +123,10 @@ public class AppController {
         boolean isAdmin = UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole());
         boolean isOwner = loginUser.getId().equals(app.getUserId());
         ThrowUtils.throwIf(!isAdmin && !isOwner, ErrorCode.NO_AUTH_ERROR, "无权限删除此应用");
-        
+
         // Admin uses admin delete method, owner uses user delete method
-        boolean result = isAdmin ? appService.deleteAppByAdmin(deleteRequest.getId()) 
-                                 : appService.deleteApp(deleteRequest.getId(), loginUser.getId());
+        boolean result = isAdmin ? appService.deleteAppByAdmin(deleteRequest.getId())
+                : appService.deleteApp(deleteRequest.getId(), loginUser.getId());
         return ResultUtils.success(result);
     }
 
@@ -320,64 +314,69 @@ public class AppController {
      */
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> chatToGenCode(
-            @RequestParam Long appId,
-            @RequestParam String message,
+            @RequestParam("appId") Long appId,
+            @RequestParam("message") String message,
             HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
-        
+
         // 创建会话 ID
         String sessionId = sessionManager.createSession();
-        
+
         // 调用服务生成代码（流式）
         Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
-        
-        // 构建带会话管理的 SSE 流
-        return Flux.push(sink -> {
-                    // 发送 sessionId 作为第一个事件
-                    Map<String, String> sessionWrapper = Map.of("sessionId", sessionId);
-                    String sessionJson = JSONUtil.toJsonStr(sessionWrapper);
-                    sink.next(ServerSentEvent.<String>builder()
-                            .event("session")
-                            .data(sessionJson)
-                            .build());
-                    
-                    // 订阅内容流
-                    Disposable subscription = contentFlux
-                            .map(chunk -> {
-                                Map<String, String> wrapper = Map.of("d", chunk);
-                                String jsonData = JSONUtil.toJsonStr(wrapper);
-                                return ServerSentEvent.<String>builder()
-                                        .data(jsonData)
-                                        .build();
-                            })
-                            .doOnNext(sink::next)
-                            .doOnComplete(() -> {
-                                // 发送结束事件
-                                sink.next(ServerSentEvent.<String>builder()
-                                        .event("done")
-                                        .data("")
-                                        .build());
-                                // 清理会话
-                                sessionManager.removeSession(sessionId);
-                            })
-                            .doOnError(e -> {
-                                log.error("生成代码出错: {}", e.getMessage());
-                                sessionManager.removeSession(sessionId);
-                            })
-                            .doOnCancel(() -> {
-                                log.info("生成被取消: {}", sessionId);
-                                sessionManager.removeSession(sessionId);
-                            })
-                            .subscribe();
-                    
-                    // 注册会话
-                    sessionManager.registerSession(sessionId, subscription);
-                })
-                .doOnCancel(() -> sessionManager.cancelSession(sessionId));
+
+        // 【修复点】：显式声明变量类型，帮助 Java 编译器正确推断泛型
+        Flux<ServerSentEvent<String>> sseFlux = Flux.push(sink -> {
+            // 发送 sessionId 作为第一个事件
+            Map<String, String> sessionWrapper = Map.of("sessionId", sessionId);
+            sink.next(ServerSentEvent.<String>builder()
+                    .event("session")
+                    .data(JSONUtil.toJsonStr(sessionWrapper))
+                    .build());
+
+            // 订阅内容流并正确路由到 sink
+            Disposable subscription = contentFlux.subscribe(
+                    chunk -> {
+                        Map<String, String> wrapper = Map.of("d", chunk);
+                        sink.next(ServerSentEvent.<String>builder()
+                                .data(JSONUtil.toJsonStr(wrapper))
+                                .build());
+                    },
+                    error -> {
+                        log.error("生成代码出错: {}", error.getMessage());
+                        sessionManager.removeSession(sessionId);
+                        sink.error(error); // 必须调用，否则流会挂起
+                    },
+                    () -> {
+                        // 发送结束事件
+                        sink.next(ServerSentEvent.<String>builder()
+                                .event("done")
+                                .data("")
+                                .build());
+                        sessionManager.removeSession(sessionId);
+                        sink.complete(); // 必须调用，否则 HTTP 连接无法正常结束
+                    }
+            );
+
+            // 注册会话以供手动中止
+            sessionManager.registerSession(sessionId, subscription);
+
+            // 处理客户端意外断开时的资源清理
+            sink.onDispose(() -> {
+                if (!subscription.isDisposed()) {
+                    subscription.dispose();
+                }
+                sessionManager.removeSession(sessionId);
+            });
+
+        });
+
+        // 最后再链式调用 doOnCancel，此时类型绝对安全
+        return sseFlux.doOnCancel(() -> sessionManager.cancelSession(sessionId));
     }
 
     /**

@@ -289,3 +289,172 @@ MULTI_FILE("MULTI_FILE")     // Multiple files
 
 - **Knife4j UI**: http://localhost:8123/api/doc.html
 - **OpenAPI JSON**: http://localhost:8123/api/v3/api-docs
+
+---
+
+## 最近更新 (2026-03-08)
+
+### 新增模块
+
+#### 1. ChatHistory 对话历史模块
+- 实体: `ChatHistory` (chat_history 表)
+- 服务: `ChatHistoryService` / `ChatHistoryServiceImpl`
+- 控制器: `ChatHistoryController`
+- 功能: 用户消息和 AI 消息持久化存储
+
+#### 2. AppVersion 应用版本模块
+- 实体: `AppVersion` (app_version 表)
+- 服务: `AppVersionService` / `AppVersionServiceImpl`
+- 控制器: `AppVersionController`
+- 功能: 版本自动管理、版本对比、版本回退
+
+### 新增功能
+
+#### 1. 对话历史管理
+- 用户消息和 AI 消息自动保存到数据库
+- 支持游标分页加载历史对话
+- 按应用隔离对话历史
+- 删除应用时级联删除对话历史
+
+**API 端点**:
+- `GET /api/chatHistory/app/{appId}` - 获取应用对话历史（游标分页）
+- `POST /api/chatHistory/user/save` - 保存用户消息
+- `POST /api/chatHistory/ai/save` - 保存 AI 消息
+- `POST /api/chatHistory/admin/list/page` - 管理员分页查询
+
+#### 2. 应用版本管理
+- AI 每次生成自动创建版本记录
+- 版本差异计算（使用 java-diff-utils）
+- 版本回退功能
+- 删除应用时级联删除版本记录
+
+**API 端点**:
+- `POST /api/app/version/list/page` - 获取版本列表
+- `GET /api/app/version/get/detail` - 获取版本详情
+- `GET /api/app/version/diff` - 对比两个版本
+- `POST /api/app/version/rollback` - 回退版本
+
+#### 3. AI 生成中断
+- 每次生成返回唯一 `sessionId`
+- 前端可通过 `sessionId` 停止生成
+- `GenerationSessionManager` 管理活跃会话
+
+**SSE 事件流**:
+```
+event: session
+data: {"sessionId":"abc123"}
+
+data: {"d":"内容"}
+
+event: done
+data:
+```
+
+**API 端点**:
+- `POST /api/app/chat/stop?sessionId=xxx` - 停止 AI 生成
+
+#### 4. 对话记忆功能
+- 每个应用独立的对话上下文
+- AI 能记住之前的对话内容
+- 使用 Redis 存储对话记忆
+- Caffeine 缓存优化 AI 服务实例
+
+**架构**:
+```
+AiCodeGeneratorServiceFactory
+  ├── Caffeine 缓存 (最大 1000 实例)
+  │   ├── 写入后 30 分钟过期
+  │   └── 访问后 10 分钟过期
+  ├── MessageWindowChatMemory (每个 appId 独立)
+  │   ├── id: appId
+  │   ├── chatMemoryStore: RedisChatMemoryStore
+  │   └── maxMessages: 20
+  └── 懒加载历史对话
+```
+
+#### 5. 环境变量配置
+- 部署域名可配置: `app.deploy.host`
+- 预览域名可配置: `app.preview.host`
+- 通过 `AppConfig` 类读取
+
+### 数据库变更
+
+#### 新增表
+
+**chat_history 表**:
+```sql
+CREATE TABLE `chat_history` (
+  `id` bigint AUTO_INCREMENT PRIMARY KEY,
+  `appId` bigint NOT NULL,
+  `userId` bigint NOT NULL,
+  `message` text NOT NULL,
+  `messageType` varchar(32) NOT NULL,  -- user/ai
+  `fileList` json,
+  `parentId` bigint,  -- AI 消息关联用户消息
+  `createTime` datetime DEFAULT CURRENT_TIMESTAMP,
+  `isDelete` tinyint DEFAULT 0
+);
+```
+
+**app_version 表**:
+```sql
+CREATE TABLE `app_version` (
+  `id` bigint AUTO_INCREMENT PRIMARY KEY,
+  `app_id` bigint NOT NULL,
+  `version_number` int NOT NULL,
+  `version_name` varchar(100),
+  `content` longtext NOT NULL,
+  `summary` varchar(500),
+  `change_type` varchar(20) NOT NULL,  -- CREATE/UPDATE/ROLLBACK
+  `diff_summary` varchar(500),
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `created_by` bigint,
+  `is_current` tinyint DEFAULT 0,
+  `parent_version` int
+);
+```
+
+#### App 表新增字段
+```sql
+ALTER TABLE `app` ADD COLUMN `current_version` int DEFAULT 1;
+ALTER TABLE `app` ADD COLUMN `total_versions` int DEFAULT 1;
+ALTER TABLE `app` ADD COLUMN `latest_version_time` datetime;
+```
+
+### 修复的 Bug
+
+1. **AppServiceImpl.addApp() 重复代码错误**
+   - 问题：第 72 行重复的 `BeanUtil.copyProperties()` 覆盖默认值
+   - 修复：删除重复代码块
+
+2. **CodeFileSaverTemplate 目录清理缺失**
+   - 问题：相同 appId 第二次生成代码时旧文件未清理
+   - 修复：添加 `FileUtil.del(dirPath)` 先删除旧目录
+
+3. **循环依赖问题**
+   - 问题：AppServiceImpl ↔ AppVersionServiceImpl 循环依赖
+   - 修复：AppVersionServiceImpl 使用 AppMapper 代替 AppService
+
+### 新增依赖
+
+```xml
+<!-- 版本差异计算 -->
+<dependency>
+    <groupId>io.github.java-diff-utils</groupId>
+    <artifactId>java-diff-utils</artifactId>
+    <version>4.12</version>
+</dependency>
+```
+
+### 新增枚举
+
+```java
+// MessageTypeEnum - 消息类型
+USER("用户消息", "user")
+AI("AI消息", "ai")
+
+// ChangeTypeEnum - 变更类型
+CREATE("创建", "CREATE")
+UPDATE("更新", "UPDATE")
+ROLLBACK("回退", "ROLLBACK")
+```

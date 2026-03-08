@@ -24,8 +24,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("app")
-public class App implements Serializable {
+@Table("chat_history")
+public class ChatHistory implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -38,56 +38,39 @@ public class App implements Serializable {
 
 
     /**
-     * 应用名称
+     * 父消息id(用于关联AI回复与用户提示词，便于重试/重新生成)
      */
-    @Column("appName")
-    private String appName;
+    @Column("parentId")
+    private Long parentId;
 
     /**
-     * 应用封面
+     * 消息内容
      */
-    private String cover;
+    private String message;
 
     /**
-     * 应用初始化的 prompt
+     * 消息类型(user/ai)
      */
-    @Column("initPrompt")
-    private String initPrompt;
+    @Column("messageType")
+    private String messageType;
 
     /**
-     * 代码生成类型（枚举）
+     * 文件列表(JSON数组，建议存储OSS的URL和文件元数据，切勿直接存储文件内容)
      */
-    @Column("codeGenType")
-    private String codeGenType;
+    @Column("fileList")
+    private String fileList;
 
     /**
-     * 部署标识
+     * 应用id
      */
-    @Column("deployKey")
-    private String deployKey;
-
-    /**
-     * 部署时间
-     */
-    @Column("deployedTime")
-    private LocalDateTime deployedTime;
-
-    /**
-     * 优先级
-     */
-    private Integer priority;
+    @Column("appId")
+    private Long appId;
 
     /**
      * 创建用户id
      */
     @Column("userId")
     private Long userId;
-
-    /**
-     * 编辑时间
-     */
-    @Column("editTime")
-    private LocalDateTime editTime;
 
     /**
      * 创建时间
@@ -106,21 +89,5 @@ public class App implements Serializable {
      */
     @Column(value = "isDelete", isLogicDelete = true)
     private Integer isDelete;
-
-    /**
-     * 当前版本号
-     */
-    private Integer currentVersion;
-
-    /**
-     * 总版本数
-     */
-    private Integer totalVersions;
-
-    /**
-     * 最新版本时间
-     */
-    private LocalDateTime latestVersionTime;
-
 
 }

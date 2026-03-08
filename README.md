@@ -219,40 +219,46 @@ MIT
    - 支持 SSE 流式中断
    - 新增 `POST /api/app/chat/stop?sessionId=xxx` 端点
    - 前端可随时停止 AI 生成
+### 2026-03-08
+
+**新增模块：**
+
+1. **ChatHistory 对话历史模块**
+   - 用户消息和 AI 消息持久化存储
+   - 游标分页加载历史对话
+   - 按应用隔离对话历史
+   - API: `GET /api/chatHistory/app/{appId}`
+
+2. **AppVersion 应用版本模块**
+   - AI 每次生成自动创建版本
+   - 版本对比（差异高亮）
+   - 版本回退功能
+   - API: `POST /api/app/version/list/page`
+
 **新增功能：**
 
-3. **环境变量配置支持**
-   - 新增 `AppConfig` 配置类，支持通过 `application.yml` 配置部署和预览域名
-   - 配置项：`app.deploy.host` 和 `app.preview.host`
-   - 解决前端域名配置问题
+3. **对话记忆功能**
+   - 每个应用独立的对话上下文
+   - AI 能记住之前的对话内容
+   - Redis 存储对话记忆
+   - Caffeine 缓存优化
 
-4. **应用删除级联清理**
-   - 删除应用时自动清理关联文件
-   - 清理预览目录：`tmp/code_output/{codeGenType}_{appId}/`
-   - 清理部署目录：`tmp/code_deploy/{deployKey}/`
-   - 避免垃圾数据堆积
+4. **历史对话懒加载**
+   - 创建 AI Service 时从数据库加载历史
+   - 自动排除最新用户消息（避免重复）
+   - 最多加载 20 条历史消息
 
-5. **AI 生成中断功能**
-   - 新增 `GenerationSessionManager` 会话管理器
-   - 支持 SSE 流式中断
-   - 新增 `POST /api/app/chat/stop?sessionId=xxx` 端点
-   - 前端可随时停止 AI 生成
-**新增功能：**
+**架构优化：**
 
-3. **环境变量配置支持**
-   - 新增 `AppConfig` 配置类，支持通过 `application.yml` 配置部署和预览域名
-   - 配置项：`app.deploy.host` 和 `app.preview.host`
-   - 解决前端域名配置问题
+- 使用 Caffeine 缓存 AI 服务实例（最大 1000，30分钟过期）
+- 打破 AppServiceImpl ↔ AppVersionServiceImpl 循环依赖
+- 数据库列名统一使用下划线格式
 
-4. **应用删除级联清理**
-   - 删除应用时自动清理关联文件
-   - 清理预览目录：`tmp/code_output/{codeGenType}_{appId}/`
-   - 清理部署目录：`tmp/code_deploy/{deployKey}/`
-   - 避免垃圾数据堆积
-
-5. **AI 生成中断功能**
-   - 新增 `GenerationSessionManager` 会话管理器
-   - 支持 SSE 流式中断
-   - 新增 `POST /api/app/chat/stop?sessionId=xxx` 端点
-   - 前端可随时停止 AI 生成
-**根本原因：** 这两个bug组合导致"第一次使用正常，第二次使用出问题"的现象。
+**新增依赖：**
+```xml
+<dependency>
+    <groupId>io.github.java-diff-utils</groupId>
+    <artifactId>java-diff-utils</artifactId>
+    <version>4.12</version>
+</dependency>
+```
