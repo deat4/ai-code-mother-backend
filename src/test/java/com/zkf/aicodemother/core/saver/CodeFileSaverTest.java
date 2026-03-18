@@ -44,7 +44,7 @@ class CodeFileSaverTest {
         assertNotNull(savedDir);
         assertTrue(savedDir.exists());
         assertTrue(savedDir.isDirectory());
-        assertTrue(savedDir.getName().startsWith("multi_file_"));
+        assertTrue(savedDir.getName().startsWith("MULTI_FILE_"));
         
         // 验证文件是否存在
         assertTrue(new File(savedDir, "index.html").exists());

@@ -2,7 +2,7 @@ package com.zkf.aicodemother.core.saver;
 
 import com.zkf.aicodemother.ai.model.HtmlCodeResult;
 import com.zkf.aicodemother.ai.model.MultiFileCodeResult;
-import com.zkf.aicodemother.core.CodeGenTypeEnum;
+import com.zkf.aicodemother.model.enums.CodeGenTypeEnum;
 import com.zkf.aicodemother.exception.BusinessException;
 import com.zkf.aicodemother.exception.ErrorCode;
 
@@ -28,9 +28,15 @@ public class CodeFileSaverExecutor {
      * @return 保存的目录
      */
     public static File executeSaver(Object codeResult, CodeGenTypeEnum codeGenType) {
+        if (codeGenType == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "代码生成类型不能为空");
+        }
+
+        // 修复点：删除了下方重复残留的 switch 块，并补充 default
         return switch (codeGenType) {
             case HTML -> htmlCodeFileSaver.saveCode((HtmlCodeResult) codeResult);
-            case MULTI_FILE -> multiFileCodeFileSaver.saveCode((MultiFileCodeResult) codeResult);
+            case MULTI_FILE, VUE_PROJECT -> multiFileCodeFileSaver.saveCode((MultiFileCodeResult) codeResult);
+            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型保存: " + codeGenType);
         };
     }
 
@@ -43,9 +49,15 @@ public class CodeFileSaverExecutor {
      * @return 保存的目录
      */
     public static File executeSaver(Object codeResult, CodeGenTypeEnum codeGenType, Long appId) {
+        if (codeGenType == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "代码生成类型不能为空");
+        }
+
+        // 修复点：删除了下方重复残留的 switch 块，并补充 default
         return switch (codeGenType) {
             case HTML -> htmlCodeFileSaver.saveCode((HtmlCodeResult) codeResult, appId);
-            case MULTI_FILE -> multiFileCodeFileSaver.saveCode((MultiFileCodeResult) codeResult, appId);
+            case MULTI_FILE, VUE_PROJECT -> multiFileCodeFileSaver.saveCode((MultiFileCodeResult) codeResult, appId);
+            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型保存: " + codeGenType);
         };
     }
 }

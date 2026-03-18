@@ -2,7 +2,7 @@ package com.zkf.aicodemother.core.saver;
 
 import cn.hutool.core.util.StrUtil;
 import com.zkf.aicodemother.ai.model.HtmlCodeResult;
-import com.zkf.aicodemother.core.CodeGenTypeEnum;
+import com.zkf.aicodemother.model.enums.CodeGenTypeEnum;
 import com.zkf.aicodemother.exception.BusinessException;
 import com.zkf.aicodemother.exception.ErrorCode;
 
@@ -21,7 +21,13 @@ public class HtmlCodeFileSaverTemplate extends CodeFileSaverTemplate<HtmlCodeRes
     @Override
     protected void saveFiles(HtmlCodeResult result, String baseDirPath) {
         // 保存 HTML 文件
-        writeToFile(baseDirPath, "index.html", result.getHtmlCode());
+        String htmlCode = result.getHtmlCode();
+        // DEBUG: 检查内容格式
+        System.out.println("[DEBUG] HtmlCodeFileSaver - htmlCode 前100字符: " + 
+            (htmlCode != null ? htmlCode.substring(0, Math.min(100, htmlCode.length())) : "null"));
+        System.out.println("[DEBUG] HtmlCodeFileSaver - 包含字面量\\n: " + 
+            (htmlCode != null && htmlCode.contains("\\n")));
+        writeToFile(baseDirPath, "index.html", htmlCode);
     }
 
     @Override

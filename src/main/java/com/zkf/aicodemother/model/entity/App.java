@@ -55,6 +55,12 @@ public class App implements Serializable {
     private String initPrompt;
 
     /**
+     * 应用描述
+     */
+    @Column("appDesc")
+    private String appDesc;
+
+    /**
      * 代码生成类型（枚举）
      */
     @Column("codeGenType")

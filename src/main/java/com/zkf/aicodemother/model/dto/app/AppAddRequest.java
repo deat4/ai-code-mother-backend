@@ -28,6 +28,11 @@ public class AppAddRequest implements Serializable {
     private String initPrompt;
 
     /**
+     * 应用描述
+     */
+    private String appDesc;
+
+    /**
      * 代码生成类型
      */
     private String codeGenType;

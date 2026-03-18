@@ -8,8 +8,9 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.zkf.aicodemother.constant.AppConstant;
 import com.zkf.aicodemother.config.AppConfig;
-import com.zkf.aicodemother.core.CodeGenTypeEnum;
+import com.zkf.aicodemother.model.enums.CodeGenTypeEnum;
 import com.zkf.aicodemother.core.GenerationSessionManager;
+import com.zkf.aicodemother.core.builder.VueProjectBuilder;
 import com.zkf.aicodemother.exception.BusinessException;
 import com.zkf.aicodemother.exception.ErrorCode;
 import com.zkf.aicodemother.exception.ThrowUtils;
@@ -69,6 +70,12 @@ public class AppServiceImpl implements AppService {
     @Resource
     private com.zkf.aicodemother.core.AiCodeGeneratorFacade aiCodeGeneratorFacade;
 
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
+
+    @Resource
+    private com.zkf.aicodemother.core.handler.StreamHandlerExecutor streamHandlerExecutor;
+
     @Override
     public Page<App> page(Page<App> page, QueryWrapper queryWrapper) {
         return appMapper.paginate(page, queryWrapper);
@@ -88,6 +95,7 @@ public class AppServiceImpl implements AppService {
         app.setUpdateTime(LocalDateTime.now());
         app.setEditTime(LocalDateTime.now());
         app.setIsDelete(0);
+
         // 设置默认封面
         if (StrUtil.isBlank(app.getCover())) {
             app.setCover("https://picsum.photos/800/600?random=1");
@@ -101,7 +109,7 @@ public class AppServiceImpl implements AppService {
             // 校验 codeGenType 是否有效
             CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
             ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR,
-                    "不支持的代码生成类型: " + codeGenType + "，仅支持 HTML 和 MULTI_FILE");
+                    "不支持的代码生成类型: " + codeGenType + "，仅支持 HTML、MULTI_FILE 和 VUE_PROJECT");
             // 统一转换为大写格式
             app.setCodeGenType(codeGenTypeEnum.getValue());
         }
@@ -212,7 +220,7 @@ public class AppServiceImpl implements AppService {
                 FileUtil.del(deployDir);
                 log.info("已清理部署目录: {}", deployDir);
             }
-        } // 【修复点】：此处补全了缺失的闭合括号
+        }
 
         // 3. 清理对话历史
         chatHistoryService.deleteByAppId(app.getId());
@@ -221,8 +229,6 @@ public class AppServiceImpl implements AppService {
         // 4. 清理应用版本
         appVersionService.deleteByAppId(app.getId());
         log.info("已清理应用版本: appId={}", app.getId());
-
-        // 【修复点】：删除了尾部多余的重复清理代码
     }
 
     @Override
@@ -348,6 +354,8 @@ public class AppServiceImpl implements AppService {
                 .collect(Collectors.toSet());
         Map<Long, UserVO> userVOMap = userService.listByIds(userIds).stream()
                 .collect(Collectors.toMap(User::getId, user -> userService.getUserVO(user)));
+
+        // 修复流操作中的语法错误
         return appList.stream().map(app -> {
             AppVO appVO = getAppVO(app);
             UserVO userVO = userVOMap.get(app.getUserId());
@@ -401,11 +409,10 @@ public class AppServiceImpl implements AppService {
 
         // 4. 获取应用的代码生成类型
         String codeGenTypeStr = app.getCodeGenType();
-        com.zkf.aicodemother.core.CodeGenTypeEnum codeGenTypeEnum =
-                com.zkf.aicodemother.core.CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
+        CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
         if (codeGenTypeEnum == null) {
             // 如果 codeGenType 无效，默认使用 HTML
-            codeGenTypeEnum = com.zkf.aicodemother.core.CodeGenTypeEnum.HTML;
+            codeGenTypeEnum = CodeGenTypeEnum.HTML;
             log.warn("应用 {} 的代码生成类型无效: {}，使用默认值 HTML", appId, codeGenTypeStr);
         }
 
@@ -413,30 +420,11 @@ public class AppServiceImpl implements AppService {
         chatHistoryService.addChatMessage(appId, message, MessageTypeEnum.USER.getValue(), loginUser.getId());
 
         // 6. 调用 AI 生成代码（流式），传递 userId 用于创建版本
-        reactor.core.publisher.Flux<String> contentFlux = aiCodeGeneratorFacade
+        reactor.core.publisher.Flux<String> originFlux = aiCodeGeneratorFacade
                 .generateAndSaveCodeStream(message, codeGenTypeEnum, appId, loginUser.getId());
 
-        // 7. 收集 AI 响应内容并在完成后记录到对话历史
-        StringBuilder aiResponseBuilder = new StringBuilder();
-        return contentFlux
-                .map(chunk -> {
-                    // 收集 AI 响应内容
-                    aiResponseBuilder.append(chunk);
-                    return chunk;
-                })
-                .doOnComplete(() -> {
-                    // 流式响应完成后，保存 AI 消息到对话历史
-                    String aiResponse = aiResponseBuilder.toString();
-                    if (StrUtil.isNotBlank(aiResponse)) {
-                        chatHistoryService.addChatMessage(appId, aiResponse, MessageTypeEnum.AI.getValue(), loginUser.getId());
-                    }
-                })
-                .doOnError(error -> {
-                    // 如果 AI 回复失败，也要记录错误消息
-                    String errorMessage = "AI 回复失败: " + error.getMessage();
-                    chatHistoryService.addChatMessage(appId, errorMessage, MessageTypeEnum.AI.getValue(), loginUser.getId());
-                    log.error("AI 生成代码失败: appId={}, error={}", appId, error.getMessage());
-                });
+        // 7. 使用流处理器处理 JSON 消息流（根据代码生成类型选择合适的处理器）
+        return streamHandlerExecutor.doExecute(originFlux, chatHistoryService, appId, loginUser, codeGenTypeEnum);
     }
 
     @Override
@@ -470,6 +458,20 @@ public class AppServiceImpl implements AppService {
         java.io.File sourceDir = new java.io.File(sourceDirPath);
         if (!sourceDir.exists() || !sourceDir.isDirectory()) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用代码不存在，请先生成代码");
+        }
+
+        // 6.5 Vue 项目特殊处理：执行构建
+        CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
+        if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT) {
+            // Vue 项目需要构建
+            boolean buildSuccess = vueProjectBuilder.buildProject(sourceDirPath);
+            ThrowUtils.throwIf(!buildSuccess, ErrorCode.SYSTEM_ERROR, "Vue 项目构建失败，请检查代码和依赖");
+            // 检查 dist 目录是否存在
+            java.io.File distDir = new java.io.File(sourceDirPath, "dist");
+            ThrowUtils.throwIf(!distDir.exists(), ErrorCode.SYSTEM_ERROR, "Vue 项目构建完成但未生成 dist 目录");
+            // 将 dist 目录作为部署源
+            sourceDir = distDir;
+            log.info("Vue 项目构建成功，将部署 dist 目录: {}", distDir.getAbsolutePath());
         }
 
         // 7. 复制文件到部署目录

@@ -1,23 +1,19 @@
-# AI
+# AI 模型配置 - 优化成本和速度
 langchain4j:
   open-ai:
     chat-model:
       base-url: https://api.deepseek.com
       api-key: sk-19746d21ff604135b0789d48fb455057
       model-name: deepseek-chat
-      max-tokens: 8192
-      temperature: 0.7
+      max-tokens: 4096
+      temperature: 0.3
       log-requests: true
       log-responses: true
-      response-format: json_object
-      strict-json-schema: true
     streaming-chat-model:
       base-url: https://api.deepseek.com
       api-key: sk-19746d21ff604135b0789d48fb455057
       model-name: deepseek-chat
-      max-tokens: 8192
-      temperature: 0.7
+      max-tokens: 4096
+      temperature: 0.3
       log-requests: true
       log-responses: true
-      response-format: json_object
-      strict-json-schema: true
