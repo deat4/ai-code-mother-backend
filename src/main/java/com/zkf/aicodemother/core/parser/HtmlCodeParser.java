@@ -24,14 +24,9 @@ public class HtmlCodeParser implements CodeParser<HtmlCodeResult> {
 
         HtmlCodeResult result = new HtmlCodeResult();
 
-        // 调试日志：打印原始内容前100字符
-        System.out.println("[DEBUG] HtmlCodeParser 原始内容前100字符: " + 
-            codeContent.substring(0, Math.min(100, codeContent.length())));
-
         // 1. 尝试从 JSON 格式提取
         String htmlCode = extractFromJson(codeContent);
         if (htmlCode != null && !htmlCode.trim().isEmpty()) {
-            System.out.println("[DEBUG] 从 JSON 提取成功");
             result.setHtmlCode(htmlCode.trim());
             return result;
         }
@@ -39,139 +34,124 @@ public class HtmlCodeParser implements CodeParser<HtmlCodeResult> {
         // 2. 尝试从 ```html 代码块提取
         htmlCode = extractHtmlCode(codeContent);
         if (htmlCode != null && !htmlCode.trim().isEmpty()) {
-            System.out.println("[DEBUG] 从代码块提取成功");
-            // 对代码块内容也应用反转义
-            result.setHtmlCode(unescapeJsonString(htmlCode.trim()));
+            result.setHtmlCode(htmlCode.trim());
             return result;
         }
 
-        // 3. 如果都没有，将整个内容作为 HTML（应用反转义）
-        System.out.println("[DEBUG] 使用原始内容作为HTML");
-        result.setHtmlCode(unescapeJsonString(codeContent.trim()));
+        // 3. 如果都没有，将整个内容作为 HTML
+        result.setHtmlCode(codeContent.trim());
         return result;
     }
 
     /**
      * 从 JSON 格式提取 HTML 代码
-     * 支持纯 JSON 和 Markdown 代码块包裹的 JSON
-     * JSON 解析失败时尝试从残缺内容中提取 HTML 骨架
+     * 支持单个 JSON、嵌套 JSON、多个 JSON 拼接的情况
      */
     private String extractFromJson(String content) {
+        if (content == null || content.trim().isEmpty()) {
+            return null;
+        }
+        
         try {
-            // 1. 先尝试提取 Markdown 代码块中的内容
-            String jsonContent = content;
-
-            // 匹配 ```json ... ``` 或 ``` ... ```
-            Pattern codeBlockPattern = Pattern.compile("```(?:json)?\\s*\\n?([\\s\\S]*?)\\n?```");
-            Matcher codeBlockMatcher = codeBlockPattern.matcher(content.trim());
-            if (codeBlockMatcher.find()) {
-                jsonContent = codeBlockMatcher.group(1).trim();
+            // 尝试直接解析单个 JSON
+            JSONObject json = new JSONObject(content);
+            return extractHtmlFromJsonObject(json);
+        } catch (Exception e1) {
+            // 如果失败，尝试处理多个 JSON 对象拼接的情况
+            // 例如: { "html": "第一部分" }\n{ "html": "第二部分" }
+            try {
+                // 找到所有 JSON 对象
+                StringBuilder htmlBuilder = new StringBuilder();
+                int start = 0;
+                while (start < content.length()) {
+                    int objStart = content.indexOf('{', start);
+                    if (objStart == -1) break;
+                    
+                    // 找到匹配的 }
+                    int braceCount = 0;
+                    int objEnd = -1;
+                    for (int i = objStart; i < content.length(); i++) {
+                        if (content.charAt(i) == '{') braceCount++;
+                        if (content.charAt(i) == '}') braceCount--;
+                        if (braceCount == 0) {
+                            objEnd = i;
+                            break;
+                        }
+                    }
+                    
+                    if (objEnd == -1) break;
+                    
+                    // 提取并解析这个 JSON 对象
+                    String jsonStr = content.substring(objStart, objEnd + 1);
+                    try {
+                        JSONObject jsonObj = new JSONObject(jsonStr);
+                        String html = extractHtmlFromJsonObject(jsonObj);
+                        if (html != null && !html.trim().isEmpty()) {
+                            htmlBuilder.append(html);
+                        }
+                    } catch (Exception ignored) {
+                        // 忽略解析失败的 JSON
+                    }
+                    
+                    start = objEnd + 1;
+                }
+                
+                if (htmlBuilder.length() > 0) {
+                    return htmlBuilder.toString();
+                }
+            } catch (Exception e2) {
+                // 忽略
             }
-
-            // 2. 解析 JSON
-            JSONObject json = new JSONObject(jsonContent);
-            String htmlCode = json.getStr("html");
             
-            // 3. 处理 JSON 字符串转义：\n -> 实际换行符
-            if (htmlCode != null) {
-                System.out.println("[DEBUG] JSON解析后 html 前50字符: " + 
-                    htmlCode.substring(0, Math.min(50, htmlCode.length())));
-                System.out.println("[DEBUG] 包含字面量\\n: " + htmlCode.contains("\\n"));
-                System.out.println("[DEBUG] 包含实际换行符: " + htmlCode.contains("\n"));
-                htmlCode = unescapeJsonString(htmlCode);
-                System.out.println("[DEBUG] unescape后 html 前50字符: " + 
-                    htmlCode.substring(0, Math.min(50, htmlCode.length())));
+            return null;
+        }
+    }
+    
+    /**
+     * 从 JSON 对象中提取 HTML
+     */
+    private String extractHtmlFromJsonObject(JSONObject json) {
+        // 1. 尝试 "htmlCode" 字段（LangChain4j 序列化格式）
+        String htmlCode = json.getStr("htmlCode");
+        if (htmlCode != null && !htmlCode.trim().isEmpty()) {
+            // 检查是否是嵌套 JSON
+            if (htmlCode.trim().startsWith("{")) {
+                try {
+                    JSONObject nested = new JSONObject(htmlCode);
+                    String nestedHtml = nested.getStr("html");
+                    if (nestedHtml != null && !nestedHtml.trim().isEmpty()) {
+                        return nestedHtml;
+                    }
+                    String nestedCode = nested.getStr("htmlCode");
+                    if (nestedCode != null && !nestedCode.trim().isEmpty()) {
+                        return nestedCode;
+                    }
+                } catch (Exception ignored) {}
             }
             return htmlCode;
-        } catch (Exception e) {
-            // 4. JSON 解析失败时，尝试从残缺内容中提取 HTML 骨架
-            return extractHtmlSkeleton(content);
         }
-    }
-
-    /**
-     * 反转义 JSON 字符串中的转义序列
-     * 将 \n, \t, \r, \", \\ 等转换为实际字符
-     * 注意：处理顺序很重要，先处理特殊转义，最后处理 \\
-     */
-    private String unescapeJsonString(String str) {
-        if (str == null) return null;
-        // 使用 StringBuilder 逐字符处理，更可靠
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (c == '\\' && i + 1 < str.length()) {
-                char next = str.charAt(i + 1);
-                switch (next) {
-                    case 'n' -> { result.append('\n'); i++; }
-                    case 't' -> { result.append('\t'); i++; }
-                    case 'r' -> { result.append('\r'); i++; }
-                    case '"' -> { result.append('"'); i++; }
-                    case '\\' -> { result.append('\\'); i++; }
-                    default -> result.append(c);
-                }
-            } else {
-                result.append(c);
+        
+        // 2. 尝试 "html" 字段（prompt 要求的格式）
+        String html = json.getStr("html");
+        if (html != null && !html.trim().isEmpty()) {
+            // 检查是否是嵌套 JSON
+            if (html.trim().startsWith("{")) {
+                try {
+                    JSONObject nested = new JSONObject(html);
+                    String nestedHtml = nested.getStr("html");
+                    if (nestedHtml != null && !nestedHtml.trim().isEmpty()) {
+                        return nestedHtml;
+                    }
+                    String nestedCode = nested.getStr("htmlCode");
+                    if (nestedCode != null && !nestedCode.trim().isEmpty()) {
+                        return nestedCode;
+                    }
+                } catch (Exception ignored) {}
             }
+            return html;
         }
-        return result.toString();
-    }
-
-    /**
-     * 从残缺的 JSON 或破损内容中提取 HTML 骨架
-     * 处理 AI 输出被截断导致 JSON 不完整的情况
-     */
-    private String extractHtmlSkeleton(String content) {
-        // 尝试匹配 "html": "... 后面的内容
-        // 这种情况是 JSON 被截断，但 HTML 内容部分存在
-        Pattern htmlValuePattern = Pattern.compile("\"html\"\\s*:\\s*\"([\\s\\S]*)");
-        Matcher htmlValueMatcher = htmlValuePattern.matcher(content);
-        if (htmlValueMatcher.find()) {
-            String htmlContent = htmlValueMatcher.group(1);
-            // 移除末尾可能存在的 JSON 结束符或转义字符
-            // 保留 HTML 内容直到找到完整的结构
-            return unescapeJsonString(cleanHtmlContent(htmlContent));
-        }
-
-        // 尝试匹配 <!DOCTYPE html> 或 <html> 开始的内容
-        Pattern doctypePattern = Pattern.compile("(<!DOCTYPE html[\\s\\S]*)", Pattern.CASE_INSENSITIVE);
-        Matcher doctypeMatcher = doctypePattern.matcher(content);
-        if (doctypeMatcher.find()) {
-            return unescapeJsonString(cleanHtmlContent(doctypeMatcher.group(1)));
-        }
-
-        Pattern htmlTagPattern = Pattern.compile("(<html[\\s\\S]*)", Pattern.CASE_INSENSITIVE);
-        Matcher htmlTagMatcher = htmlTagPattern.matcher(content);
-        if (htmlTagMatcher.find()) {
-            return unescapeJsonString(cleanHtmlContent(htmlTagMatcher.group(1)));
-        }
-
+        
         return null;
-    }
-
-    /**
-     * 清理 HTML 内容，移除末尾的 JSON 残留
-     */
-    private String cleanHtmlContent(String content) {
-        if (content == null) return null;
-
-        // 移除末尾的 JSON 结束符和转义字符
-        // 找到最后一个完整的 HTML 标签结束
-        int lastHtmlEnd = content.lastIndexOf("</html>");
-        if (lastHtmlEnd > 0) {
-            return content.substring(0, lastHtmlEnd + 7); // 包含 </html>
-        }
-
-        lastHtmlEnd = content.lastIndexOf("</body>");
-        if (lastHtmlEnd > 0) {
-            return content.substring(0, lastHtmlEnd + 7);
-        }
-
-        // 如果没有找到完整的结束标签，尝试移除末尾的 JSON 残留
-        // 常见模式: "}", }", \", etc.
-        content = content.replaceAll("[\\\\]?\"\\s*\\}?\\s*$", "");
-
-        return content;
     }
 
     /**

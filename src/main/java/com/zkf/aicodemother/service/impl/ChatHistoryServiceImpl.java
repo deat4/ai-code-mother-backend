@@ -174,17 +174,10 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
 
     @Override
     public int loadChatHistoryToMemory(Long appId, dev.langchain4j.memory.chat.MessageWindowChatMemory chatMemory, int maxCount) {
-        // 防御性检查：appId 无效时直接返回，不抛异常（避免影响启动）
-        if (appId == null || appId <= 0) {
-            log.warn("appId 无效: {}，跳过加载历史对话", appId);
-            return 0;
-        }
-        if (chatMemory == null) {
-            log.warn("chatMemory 为空，跳过加载");
-            return 0;
-        }
-        
         try {
+            ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+            ThrowUtils.throwIf(chatMemory == null, ErrorCode.PARAMS_ERROR, "对话记忆不能为空");
+
             // 直接构造查询条件，起始点为 1 而不是 0，用于排除最新的用户消息
             // 因为在对话流程中，用户消息被添加到数据库后，AI服务也会自动将用户消息添加到记忆中
             QueryWrapper queryWrapper = QueryWrapper.create()
@@ -192,7 +185,6 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
                     .eq("isDelete", 0)
                     .orderBy("createTime", false)
                     .limit(maxCount, 1);  // offset=1 排除最新消息
-
 
             List<ChatHistory> historyList = this.list(queryWrapper);
             if (historyList == null || historyList.isEmpty()) {

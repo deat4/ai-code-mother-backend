@@ -65,13 +65,11 @@ public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVers
 
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
 
-        // 从数据库获取最大版本号（避免并发问题）
-        QueryWrapper maxVersionWrapper = QueryWrapper.create();
-        maxVersionWrapper.eq("app_id", request.getAppId());
-        maxVersionWrapper.select("MAX(version_number) as version_number");
-        AppVersion maxVersion = appVersionMapper.selectOneByQuery(maxVersionWrapper);
-        Integer currentVersion = (maxVersion != null && maxVersion.getVersionNumber() != null) 
-                ? maxVersion.getVersionNumber() : 0;
+        // 获取当前版本号
+        Integer currentVersion = app.getCurrentVersion();
+        if (currentVersion == null) {
+            currentVersion = 0;
+        }
 
         // 获取上一版本内容，计算差异
         String oldContent = getCurrentVersionContent(request.getAppId());
@@ -156,8 +154,10 @@ public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVers
         QueryWrapper prevWrapper = QueryWrapper.create();
         prevWrapper.eq("app_id", version.getAppId());
 
-        prevWrapper.lt("versionNumber", version.getVersionNumber());
+        prevWrapper.lt("version_number", version.getVersionNumber());
         prevWrapper.orderBy("version_number", false);
+
+        prevWrapper.orderBy("versionNumber", false);
         prevWrapper.limit(1);
         AppVersion prevVersion = this.getOne(prevWrapper);
         if (prevVersion != null) {
@@ -167,8 +167,10 @@ public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVers
         QueryWrapper nextWrapper = QueryWrapper.create();
         nextWrapper.eq("app_id", version.getAppId());
 
-        nextWrapper.gt("versionNumber", version.getVersionNumber());
+        nextWrapper.gt("version_number", version.getVersionNumber());
         nextWrapper.orderBy("version_number", true);
+
+        nextWrapper.orderBy("versionNumber", true);
         nextWrapper.limit(1);
         AppVersion nextVersion = this.getOne(nextWrapper);
         if (nextVersion != null) {
@@ -198,6 +200,7 @@ public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVers
         }
 
         queryWrapper.orderBy("version_number", false);
+
 
         Page<AppVersion> page = this.page(new Page<>(pageNum, pageSize), queryWrapper);
 

@@ -4,7 +4,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.zkf.aicodemother.constant.AppConstant;
-import com.zkf.aicodemother.model.enums.CodeGenTypeEnum;
+import com.zkf.aicodemother.core.CodeGenTypeEnum;
 import com.zkf.aicodemother.exception.BusinessException;
 import com.zkf.aicodemother.exception.ErrorCode;
 
@@ -108,13 +108,9 @@ public abstract class CodeFileSaverTemplate<T> {
      * @param content  文件内容
      */
     protected final void writeToFile(String dirPath, String filename, String content) {
-        System.out.println("[DEBUG] writeToFile - " + filename + ", content is null: " + (content == null) + ", content is blank: " + StrUtil.isBlank(content));
         if (StrUtil.isNotBlank(content)) {
             String filePath = dirPath + File.separator + filename;
             FileUtil.writeString(content, filePath, StandardCharsets.UTF_8);
-            System.out.println("[DEBUG] 文件已写入: " + filePath + ", 长度: " + content.length());
-        } else {
-            System.out.println("[DEBUG] 内容为空，跳过写入: " + filename);
         }
     }
 

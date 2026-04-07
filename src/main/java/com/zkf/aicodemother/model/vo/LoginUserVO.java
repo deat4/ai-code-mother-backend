@@ -1,7 +1,5 @@
 package com.zkf.aicodemother.model.vo;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -18,7 +16,6 @@ public class LoginUserVO implements Serializable {
     /**
      * 用户 id
      */
-    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     /**

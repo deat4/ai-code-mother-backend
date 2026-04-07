@@ -187,65 +187,6 @@ MIT
 
 ## 最近更新
 
-### 2026-03-12
-
-**新功能：Vue 工程模式**
-
-1. **Vue 项目生成**
-   - 新增 `VUE_PROJECT` 代码生成类型
-   - 支持工具调用，AI 可主动创建文件
-   - 使用推理模型进行复杂项目生成
-   - 自动执行 `npm install` 和 `npm run build`
-
-2. **流式消息格式统一**
-   - `ai/model/message/` 消息基类体系
-   - `AiResponseMessage` - AI 响应消息
-   - `ToolRequestMessage` - 工具请求消息
-   - `ToolExecutedMessage` - 工具执行结果消息
-
-3. **Flux 流处理器**
-   - `SimpleTextStreamHandler` - 原生文本流处理（HTML/MULTI_FILE）
-   - `JsonMessageStreamHandler` - JSON 消息流处理（VUE_PROJECT）
-   - `StreamHandlerExecutor` - 流处理器执行器
-
-4. **Vue 项目构建器**
-   - `VueProjectBuilder` - npm 命令执行
-   - 异步构建（虚拟线程）
-   - Windows/Linux 跨平台支持
-
-5. **工具调用流式输出**
-   - LangChain4j 1.1.0 TokenStream 覆盖
-   - 新增 `onPartialToolCall` 和 `onCompleteToolCall` 回调
-   - 实时反馈工具调用进度
-
-**架构优化：**
-
-- `AiCodeGeneratorServiceFactory` 支持按生成类型选择不同模型
-- `AiCodeGeneratorFacade` 添加 TokenStream 到 Flux 适配器
-- 部署流程支持 Vue 项目自动构建
-
-**新增文件：**
-```
-com.zkf.aicodemother
-├── ai/model/message/
-│   ├── StreamMessage.java
-│   ├── StreamMessageTypeEnum.java
-│   ├── AiResponseMessage.java
-│   ├── ToolRequestMessage.java
-│   └── ToolExecutedMessage.java
-├── core/
-│   ├── handler/
-│   │   ├── SimpleTextStreamHandler.java
-│   │   ├── JsonMessageStreamHandler.java
-│   │   └── StreamHandlerExecutor.java
-│   └── builder/
-│       └── VueProjectBuilder.java
-└── model/enums/
-    └── CodeGenTypeEnum.java  # 新增 VUE_PROJECT
-```
-
-### 2026-03-08
-
 ### 2026-03-07
 
 **修复的关键Bug：**

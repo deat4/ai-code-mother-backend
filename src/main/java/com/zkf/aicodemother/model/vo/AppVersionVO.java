@@ -1,7 +1,5 @@
 package com.zkf.aicodemother.model.vo;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 import java.io.Serial;
@@ -20,7 +18,6 @@ public class AppVersionVO implements Serializable {
     /**
      * 版本 ID
      */
-    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     /**

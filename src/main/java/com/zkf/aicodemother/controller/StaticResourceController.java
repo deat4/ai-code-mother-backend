@@ -110,17 +110,6 @@ public class StaticResourceController {
             
             // 构建文件路径（使用生成目录）
             String filePath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/" + codeGenTypeAppId + resourcePath;
-            
-            // Vue 项目构建后输出在 dist 目录，优先从 dist 目录查找
-            if (codeGenTypeAppId.startsWith("VUE_PROJECT_")) {
-                String distPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/" + codeGenTypeAppId + "/dist" + resourcePath;
-                File distFile = new File(distPath);
-                // 优先使用 dist 目录（构建后的文件）
-                if (distFile.exists()) {
-                    filePath = distPath;
-                }
-            }
-            
             File file = new File(filePath);
             
             // 检查文件是否存在

@@ -19,7 +19,6 @@ import com.zkf.aicodemother.model.dto.app.AppQueryAdminRequest;
 import com.zkf.aicodemother.model.dto.app.AppQueryRequest;
 import com.zkf.aicodemother.model.dto.app.AppUpdateAdminRequest;
 import com.zkf.aicodemother.model.dto.app.AppUpdateRequest;
-import com.zkf.aicodemother.model.dto.app.AppDeployRequest;
 import com.zkf.aicodemother.model.entity.App;
 import com.zkf.aicodemother.model.entity.User;
 import com.zkf.aicodemother.model.vo.AppVO;
@@ -213,20 +212,6 @@ public class AppController {
         return ResultUtils.success(appVOPage);
     }
 
-    /**
-     * 部署应用
-     *
-     * @param appId   应用ID
-     * @param request 请求对象
-     * @return 部署后的访问 URL
-     */
-    @PostMapping("/deploy")
-    public BaseResponse<String> deployApp(@RequestParam Long appId, HttpServletRequest request) {
-        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR);
-        User loginUser = userService.getLoginUser(request);
-        String deployUrl = appService.deployApp(appId, loginUser);
-        return ResultUtils.success(deployUrl);
-    }
     // endregion
 
     // region 管理员接口
@@ -356,25 +341,26 @@ public class AppController {
             // 订阅内容流并正确路由到 sink
             Disposable subscription = contentFlux.subscribe(
                     chunk -> {
-                        Map<String, String> wrapper = Map.of("d", chunk);
-                        sink.next(ServerSentEvent.<String>builder()
-                                .data(JSONUtil.toJsonStr(wrapper))
-                                .build());
+                        // 检测是否是 tool_call 事件
+                        if (chunk.startsWith("EVENT:tool_call:")) {
+                            // 提取 JSON 数据
+                            String jsonData = chunk.substring("EVENT:tool_call:".length());
+                            sink.next(ServerSentEvent.<String>builder()
+                                    .event("tool_call")
+                                    .data(jsonData)
+                                    .build());
+                        } else {
+                            // 普通文本事件
+                            Map<String, String> wrapper = Map.of("d", chunk);
+                            sink.next(ServerSentEvent.<String>builder()
+                                    .data(JSONUtil.toJsonStr(wrapper))
+                                    .build());
+                        }
                     },
                     error -> {
                         log.error("生成代码出错: {}", error.getMessage());
                         sessionManager.removeSession(sessionId);
-                        // 发送错误作为 SSE 事件，而不是调用 sink.error() 破坏流格式
-                        String errorMsg = error.getMessage();
-                        if (errorMsg != null && errorMsg.length() > 200) {
-                            errorMsg = errorMsg.substring(0, 200);
-                        }
-                        Map<String, String> errorWrapper = Map.of("error", errorMsg != null ? errorMsg : "未知错误");
-                        sink.next(ServerSentEvent.<String>builder()
-                                .event("error")
-                                .data(JSONUtil.toJsonStr(errorWrapper))
-                                .build());
-                        sink.complete();
+                        sink.error(error); // 必须调用，否则流会挂起
                     },
                     () -> {
                         // 发送结束事件
@@ -416,6 +402,23 @@ public class AppController {
         boolean success = appService.stopGeneration(sessionId);
         return ResultUtils.success(success);
     }
+
+    /**
+     * 部署应用
+     *
+     * @param appId   应用 ID
+     * @param request HTTP请求
+     * @return 部署后的访问 URL
+     */
+    @PostMapping("/deploy")
+    public BaseResponse<String> deployApp(@RequestParam Long appId, HttpServletRequest request) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+
+        User loginUser = userService.getLoginUser(request);
+        String deployUrl = appService.deployApp(appId, loginUser);
+        return ResultUtils.success(deployUrl);
+    }
+
 
     // endregion
 }
