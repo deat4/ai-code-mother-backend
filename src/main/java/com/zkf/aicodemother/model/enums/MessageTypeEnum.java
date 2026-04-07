@@ -10,7 +10,9 @@ import lombok.Getter;
 public enum MessageTypeEnum {
 
     USER("用户消息", "user"),
-    AI("AI消息", "ai");
+    AI("AI消息", "ai"),
+    TOOL_REQUEST("工具调用请求", "tool_request"),
+    TOOL_RESULT("工具执行结果", "tool_result");
 
     private final String text;
 
