@@ -9,16 +9,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 /**
- * 推理流式聊天模型配置（多例模式）
- * 用于 Vue 项目生成，带工具调用
+ * 流式聊天模型配置（多例模式）
  * 每次获取 Bean 时创建新实例，解决并发阻塞问题
  *
  * @author <a href="https://github.com/deat4/ai-code-mother-backend">zkf</a>
  */
 @Configuration
-@ConfigurationProperties(prefix = "langchain4j.open-ai.reasoning-streaming-chat-model")
+@ConfigurationProperties(prefix = "langchain4j.open-ai.streaming-chat-model")
 @Data
-public class ReasoningStreamingChatModelConfig {
+public class StreamingChatModelConfig {
 
     private String baseUrl;
 
@@ -30,17 +29,17 @@ public class ReasoningStreamingChatModelConfig {
 
     private Double temperature;
 
-    private Boolean logRequests = false;
+    private boolean logRequests;
 
-    private Boolean logResponses = false;
+    private boolean logResponses;
 
     /**
-     * 创建推理流式聊天模型（多例）
+     * 创建流式聊天模型（多例）
      * 每次获取都是新实例，避免并发阻塞
      */
     @Bean
     @Scope("prototype")
-    public StreamingChatModel reasoningStreamingChatModelPrototype() {
+    public StreamingChatModel streamingChatModelPrototype() {
         return OpenAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)

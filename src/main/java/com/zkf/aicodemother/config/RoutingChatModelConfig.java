@@ -1,7 +1,7 @@
 package com.zkf.aicodemother.config;
 
-import dev.langchain4j.model.chat.StreamingChatModel;
-import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -9,16 +9,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 /**
- * 推理流式聊天模型配置（多例模式）
- * 用于 Vue 项目生成，带工具调用
+ * 智能路由聊天模型配置（多例模式）
+ * 用于代码生成类型判断等简单任务
  * 每次获取 Bean 时创建新实例，解决并发阻塞问题
  *
  * @author <a href="https://github.com/deat4/ai-code-mother-backend">zkf</a>
  */
 @Configuration
-@ConfigurationProperties(prefix = "langchain4j.open-ai.reasoning-streaming-chat-model")
+@ConfigurationProperties(prefix = "langchain4j.open-ai.routing-chat-model")
 @Data
-public class ReasoningStreamingChatModelConfig {
+public class RoutingChatModelConfig {
 
     private String baseUrl;
 
@@ -35,13 +35,13 @@ public class ReasoningStreamingChatModelConfig {
     private Boolean logResponses = false;
 
     /**
-     * 创建推理流式聊天模型（多例）
+     * 创建路由聊天模型（多例）
      * 每次获取都是新实例，避免并发阻塞
      */
     @Bean
     @Scope("prototype")
-    public StreamingChatModel reasoningStreamingChatModelPrototype() {
-        return OpenAiStreamingChatModel.builder()
+    public ChatModel routingChatModelPrototype() {
+        return OpenAiChatModel.builder()
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)
                 .modelName(modelName)

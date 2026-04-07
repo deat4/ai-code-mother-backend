@@ -17,6 +17,7 @@ import com.zkf.aicodemother.service.ChatHistoryOriginalService;
 import com.zkf.aicodemother.service.ChatHistoryService;
 import com.zkf.aicodemother.ai.AiCodeCreator;
 import com.zkf.aicodemother.ai.AiCodeModifier;
+import com.zkf.aicodemother.utils.SpringContextUtil;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -38,6 +39,9 @@ import java.time.Duration;
  * 支持根据代码生成类型选择不同的模型配置
  * 支持根据场景（创建/修改）提供不同的工具集合和系统提示词
  *
+ * 使用多例模式解决并发阻塞问题：
+ * 每次创建 AI 服务时获取新的 StreamingChatModel 实例
+ *
  * @author <a href="https://github.com/deat4/ai-code-mother-backend">zkf</a>
  */
 @Slf4j
@@ -45,18 +49,11 @@ import java.time.Duration;
 public class AiCodeGeneratorServiceFactory {
 
     @Resource
+    @Qualifier("openAiChatModel")
     private ChatModel chatModel;
 
     @Resource
-    @Qualifier("openAiStreamingChatModel")
-    private StreamingChatModel streamingChatModel;
-
-    @Resource
     private ChatMemoryStore chatMemoryStore;
-
-    @Resource
-    @Qualifier("reasoningStreamingChatModel")
-    private StreamingChatModel reasoningStreamChatModel;
 
     @Resource
     private ChatHistoryService chatHistoryService;
@@ -148,12 +145,17 @@ public class AiCodeGeneratorServiceFactory {
 
     /**
      * 内部创建 AI 服务实例的方法
+     * 使用多例模式获取 StreamingChatModel，解决并发阻塞问题
      */
     private AiCodeGeneratorService createAiCodeGeneratorService(long appId, CodeGenTypeEnum codeGenType) {
         log.info("为 appId: {}, codeGenType: {} 创建新的 AI 服务实例", appId, codeGenType.getValue());
 
         // 构建独立的对话记忆
         MessageWindowChatMemory chatMemory = buildChatMemory(appId);
+
+        // 使用多例模式获取 StreamingChatModel，每次都是新实例
+        StreamingChatModel streamingChatModel = SpringContextUtil.getBean(
+                "streamingChatModelPrototype", StreamingChatModel.class);
 
         // 根据代码生成类型选择模型
         return switch (codeGenType) {
@@ -204,6 +206,7 @@ public class AiCodeGeneratorServiceFactory {
 
     /**
      * 创建 Vue 项目创建服务实例
+     * 使用多例模式获取 StreamingChatModel，解决并发阻塞问题
      */
     private AiCodeCreator createVueProjectCreatorService(long appId) {
         log.info("为 appId: {} 创建 Vue 项目创建服务实例", appId);
@@ -211,8 +214,12 @@ public class AiCodeGeneratorServiceFactory {
         // Vue 项目使用原始历史表加载完整工具调用记忆
         MessageWindowChatMemory chatMemory = buildChatMemoryForVue(appId);
 
+        // 使用多例模式获取推理 StreamingChatModel，每次都是新实例
+        StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean(
+                "reasoningStreamingChatModelPrototype", StreamingChatModel.class);
+
         return AiServices.builder(AiCodeCreator.class)
-                .streamingChatModel(reasoningStreamChatModel)
+                .streamingChatModel(reasoningStreamingChatModel)
                 .chatMemoryProvider(memoryId -> chatMemory)
                 .tools((Object[]) creationTools()) // 仅提供写入工具
                 .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
@@ -223,6 +230,7 @@ public class AiCodeGeneratorServiceFactory {
 
     /**
      * 创建 Vue 项目修改服务实例
+     * 使用多例模式获取 StreamingChatModel，解决并发阻塞问题
      */
     private AiCodeModifier createVueProjectModifierService(long appId) {
         log.info("为 appId: {} 创建 Vue 项目修改服务实例", appId);
@@ -230,8 +238,12 @@ public class AiCodeGeneratorServiceFactory {
         // Vue 项目使用原始历史表加载完整工具调用记忆
         MessageWindowChatMemory chatMemory = buildChatMemoryForVue(appId);
 
+        // 使用多例模式获取推理 StreamingChatModel，每次都是新实例
+        StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean(
+                "reasoningStreamingChatModelPrototype", StreamingChatModel.class);
+
         return AiServices.builder(AiCodeModifier.class)
-                .streamingChatModel(reasoningStreamChatModel)
+                .streamingChatModel(reasoningStreamingChatModel)
                 .chatMemoryProvider(memoryId -> chatMemory)
                 .tools((Object[]) modificationTools()) // 提供完整工具集
                 .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
