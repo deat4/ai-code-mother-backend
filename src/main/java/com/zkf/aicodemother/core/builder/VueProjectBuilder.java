@@ -55,7 +55,8 @@ public class VueProjectBuilder {
             log.warn("appId 为空，跳过构建");
             return;
         }
-        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/VUE_PROJECT_" + appId;
+        // 使用与 FileWriteTool 一致的前缀：vue_project_
+        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
         buildProjectAsync(projectPath);
     }
 

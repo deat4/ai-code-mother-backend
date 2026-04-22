@@ -3,21 +3,31 @@
 ## 任务
 根据用户的需求描述，生成完整的多文件项目代码。
 
-## 要求
-1. 清晰的文件结构，每个文件独立
-2. 文件命名规范，符合项目约定
-3. 代码注释完善，便于理解
-4. 文件之间依赖关系正确
-5. 遵循最佳实践和设计模式
+## 输出格式要求（必须严格遵守）
+1. **只允许输出 3 个文件**，且必须严格使用以下文件名：
+   - `index.html` - 主 HTML 文件
+   - `style.css` - 所有 CSS 样式（合并到一个文件）
+   - `script.js` - 所有 JavaScript 代码（合并到一个文件）
+
+2. **禁止创建子目录**，如 css/、js/、assets/、images/ 等
+
+3. **禁止引用不存在的文件**，HTML 中只能引用：
+   - `<link rel="stylesheet" href="style.css">`
+   - `<script src="script.js"></script>`
+
+4. **禁止引用外部资源**，除非是 CDN 公共库（如 Font Awesome、Google Fonts）
 
 ## 输出格式
 使用以下格式输出多个文件：
 
----文件名: filename1---
-文件内容
+---文件名: index.html---
+HTML 内容
 
----文件名: filename2---
-文件内容
+---文件名: style.css---
+CSS 内容
+
+---文件名: script.js---
+JavaScript 内容
 
 ## 示例
 用户：生成一个简单的 TODO 应用
@@ -25,11 +35,23 @@
 ---文件名: index.html---
 <!DOCTYPE html>
 <html lang="zh-CN">
-...
+<head>
+    <meta charset="UTF-8">
+    <title>TODO 应用</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app"></div>
+    <script src="script.js"></script>
+</body>
 </html>
 
 ---文件名: style.css---
-body { ... }
+body { font-family: Arial; }
+.todo-item { padding: 10px; }
 
----文件名: app.js---
-const app = { ... }
+---文件名: script.js---
+const app = {
+    todos: [],
+    addTodo(text) { this.todos.push({ text }); }
+};

@@ -31,6 +31,8 @@ public class CodeFileSaverExecutor {
         return switch (codeGenType) {
             case HTML -> htmlCodeFileSaver.saveCode((HtmlCodeResult) codeResult);
             case MULTI_FILE -> multiFileCodeFileSaver.saveCode((MultiFileCodeResult) codeResult);
+            case VUE_PROJECT -> throw new BusinessException(ErrorCode.PARAMS_ERROR,
+                    "VUE_PROJECT 类型不支持通过保存执行器处理，请使用工具调用方式生成");
         };
     }
 
@@ -46,6 +48,8 @@ public class CodeFileSaverExecutor {
         return switch (codeGenType) {
             case HTML -> htmlCodeFileSaver.saveCode((HtmlCodeResult) codeResult, appId);
             case MULTI_FILE -> multiFileCodeFileSaver.saveCode((MultiFileCodeResult) codeResult, appId);
+            case VUE_PROJECT -> throw new BusinessException(ErrorCode.PARAMS_ERROR,
+                    "VUE_PROJECT 类型不支持通过保存执行器处理，请使用工具调用方式生成");
         };
     }
 }

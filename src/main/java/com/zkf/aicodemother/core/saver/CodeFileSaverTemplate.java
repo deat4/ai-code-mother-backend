@@ -102,6 +102,7 @@ public abstract class CodeFileSaverTemplate<T> {
 
     /**
      * 写入单个文件的工具方法
+     * 在写入前做兜底清洗，去除可能残留的 markdown 标记
      *
      * @param dirPath  目录路径
      * @param filename 文件名
@@ -109,9 +110,86 @@ public abstract class CodeFileSaverTemplate<T> {
      */
     protected final void writeToFile(String dirPath, String filename, String content) {
         if (StrUtil.isNotBlank(content)) {
+            // 兜底清洗：去除 markdown 标记
+            content = sanitizeBeforeWrite(filename, content);
             String filePath = dirPath + File.separator + filename;
             FileUtil.writeString(content, filePath, StandardCharsets.UTF_8);
         }
+    }
+
+    /**
+     * 写入文件前的兜底清洗
+     * 确保即使解析器漏处理，markdown 标记也不会被写入文件
+     * 同时修正 HTML 资源路径，确保与当前部署器结构一致
+     */
+    private String sanitizeBeforeWrite(String filename, String content) {
+        String trimmed = content.trim();
+
+        // 根据文件类型去除对应的语言标记
+        if (filename.endsWith(".html")) {
+            trimmed = stripFence(trimmed, "html");
+            // 修正 HTML 资源路径，确保与当前部署器结构一致
+            trimmed = normalizeHtmlAssetPaths(trimmed);
+        } else if (filename.endsWith(".css")) {
+            trimmed = stripFence(trimmed, "css");
+        } else if (filename.endsWith(".js")) {
+            trimmed = stripFence(trimmed, "javascript");
+            trimmed = stripFence(trimmed, "js");
+        }
+
+        // 兜底去除无语言标记的 ```
+        if (trimmed.startsWith("```")) {
+            int firstLineBreak = trimmed.indexOf('\n');
+            if (firstLineBreak > 0) {
+                trimmed = trimmed.substring(firstLineBreak + 1).trim();
+            }
+        }
+        if (trimmed.endsWith("```")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 3).trim();
+        }
+
+        return trimmed;
+    }
+
+    /**
+     * 修正 HTML 资源路径
+     * 当前部署器只支持根目录的 style.css 和 script.js
+     * 将所有 css/xxx.css 引用改为 style.css
+     * 将所有 js/xxx.js 引用改为 script.js
+     */
+    private String normalizeHtmlAssetPaths(String html) {
+        if (html == null || html.isEmpty()) {
+            return html;
+        }
+
+        // 修正 CSS 引用：css/style.css, css/responsive.css 等 -> style.css
+        html = html.replaceAll("href\\s*=\\s*\"(?:\\./)?css/[^\"/]+\\.css\"", "href=\"style.css\"");
+
+        // 修正 JS 引用：js/app.js, js/data.js 等 -> script.js
+        html = html.replaceAll("src\\s*=\\s*\"(?:\\./)?js/[^\"/]+\\.js\"", "src=\"script.js\"");
+
+        // 同时修正 styles.css -> style.css（常见变体）
+        html = html.replaceAll("href\\s*=\\s*\"(?:\\./)?styles\\.css\"", "href=\"style.css\"");
+
+        // 修正 app.js, main.js -> script.js（常见变体）
+        html = html.replaceAll("src\\s*=\\s*\"(?:\\./)?app\\.js\"", "src=\"script.js\"");
+        html = html.replaceAll("src\\s*=\\s*\"(?:\\./)?main\\.js\"", "src=\"script.js\"");
+
+        return html;
+    }
+
+    /**
+     * 去除特定语言的 markdown fence 标记
+     */
+    private String stripFence(String content, String lang) {
+        String prefix = "```" + lang;
+        if (content.startsWith(prefix)) {
+            content = content.substring(prefix.length()).trim();
+        }
+        if (content.endsWith("```")) {
+            content = content.substring(0, content.length() - 3).trim();
+        }
+        return content;
     }
 
     /**

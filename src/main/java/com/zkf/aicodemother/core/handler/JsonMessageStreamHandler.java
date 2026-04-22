@@ -6,12 +6,16 @@ import cn.hutool.json.JSONUtil;
 import com.zkf.aicodemother.ai.model.message.*;
 import com.zkf.aicodemother.ai.tools.BaseTool;
 import com.zkf.aicodemother.ai.tools.ToolManager;
+import com.zkf.aicodemother.config.AppConfig;
+import com.zkf.aicodemother.core.CodeGenTypeEnum;
 import com.zkf.aicodemother.core.builder.VueProjectBuilder;
 import com.zkf.aicodemother.model.entity.ChatHistoryOriginal;
 import com.zkf.aicodemother.model.entity.User;
 import com.zkf.aicodemother.model.enums.MessageTypeEnum;
+import com.zkf.aicodemother.service.AppService;
 import com.zkf.aicodemother.service.ChatHistoryOriginalService;
 import com.zkf.aicodemother.service.ChatHistoryService;
+import com.zkf.aicodemother.service.impl.ScreenshotServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -44,6 +48,16 @@ public class JsonMessageStreamHandler {
 
     @Resource
     private ChatHistoryOriginalService chatHistoryOriginalService;
+
+    @Resource
+    private ScreenshotServiceImpl screenshotService;
+
+    @Resource
+    @org.springframework.context.annotation.Lazy
+    private AppService appService;
+
+    @Resource
+    private AppConfig appConfig;
 
     /**
      * 处理 TokenStream（VUE_PROJECT）
@@ -91,6 +105,9 @@ public class JsonMessageStreamHandler {
 
                     // 异步构建 Vue 项目（不阻塞主流程）
                     vueProjectBuilder.buildProjectAsyncByAppId(appId);
+
+                    // 异步生成截图封面
+                    generateVueCoverAsync(appId);
                 })
                 .doOnError(error -> {
                     // 如果AI回复失败，也要记录错误消息
@@ -232,5 +249,38 @@ public class JsonMessageStreamHandler {
                 .createTime(LocalDateTime.now())
                 .build();
         originalMessages.add(originalMessage);
+    }
+
+    /**
+     * 异步生成 Vue 项目截图封面
+     *
+     * @param appId 应用ID
+     */
+    private void generateVueCoverAsync(long appId) {
+        // Vue 项目构建完成后截图，构建需要一些时间，所以延迟一段时间后截图
+        // 使用异步方式，等待构建完成后截图
+        log.info("开始异步生成Vue项目截图封面: appId={}", appId);
+
+        // Vue 项目预览 URL（构建后的 dist 目录）
+        String previewUrl = String.format("%s/vue_project_%s/",
+                appConfig.getPreview().getHost(), appId);
+
+        // 延迟执行截图（等待 Vue 项目构建完成）
+        new java.util.concurrent.CompletableFuture<Void>().completeOnTimeout(null, 10, java.util.concurrent.TimeUnit.SECONDS)
+                .thenRun(() -> {
+                    screenshotService.generateAndUploadScreenshotAsync(previewUrl)
+                            .thenAccept(coverUrl -> {
+                                if (StrUtil.isNotBlank(coverUrl)) {
+                                    boolean updated = appService.updateCover(appId, coverUrl);
+                                    if (updated) {
+                                        log.info("Vue项目封面更新成功: appId={}, coverUrl={}", appId, coverUrl);
+                                    } else {
+                                        log.warn("Vue项目封面更新失败: appId={}", appId);
+                                    }
+                                } else {
+                                    log.warn("Vue项目截图生成失败，无法更新封面: appId={}", appId);
+                                }
+                            });
+                });
     }
 }

@@ -179,5 +179,14 @@ public interface AppService {
      */
     String deployApp(Long appId, com.zkf.aicodemother.model.entity.User loginUser);
 
+    /**
+     * 更新应用封面
+     *
+     * @param appId   应用 ID
+     * @param coverUrl 封面 URL
+     * @return 是否成功
+     */
+    boolean updateCover(Long appId, String coverUrl);
+
 }
 

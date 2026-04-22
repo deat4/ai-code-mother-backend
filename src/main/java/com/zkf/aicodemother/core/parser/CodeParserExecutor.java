@@ -27,6 +27,8 @@ public class CodeParserExecutor {
         return switch (codeGenType) {
             case HTML -> htmlCodeParser.parseCode(codeContent);
             case MULTI_FILE -> multiFileCodeParser.parseCode(codeContent);
+            case VUE_PROJECT -> throw new BusinessException(ErrorCode.PARAMS_ERROR,
+                    "VUE_PROJECT 类型不支持通过解析器处理，请使用工具调用方式生成");
         };
     }
 }

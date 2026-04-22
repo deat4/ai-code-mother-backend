@@ -69,6 +69,18 @@ public class AppServiceImpl implements AppService {
     @Resource
     private com.zkf.aicodemother.core.AiCodeGeneratorFacade aiCodeGeneratorFacade;
 
+    @Resource
+    private com.zkf.aicodemother.service.impl.ScreenshotServiceImpl screenshotService;
+
+    @Resource
+    private com.zkf.aicodemother.config.AiCodeGeneratorServiceFactory aiServiceFactory;
+
+    @Resource
+    private com.zkf.aicodemother.core.handler.StreamHandlerExecutor streamHandlerExecutor;
+
+    @Resource
+    private com.zkf.aicodemother.core.builder.VueProjectBuilder vueProjectBuilder;
+
     @Override
     public Page<App> page(Page<App> page, QueryWrapper queryWrapper) {
         return appMapper.paginate(page, queryWrapper);
@@ -101,7 +113,7 @@ public class AppServiceImpl implements AppService {
             // 校验 codeGenType 是否有效
             CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
             ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR,
-                    "不支持的代码生成类型: " + codeGenType + "，仅支持 HTML 和 MULTI_FILE");
+                    "不支持的代码生成类型: " + codeGenType + "，支持 HTML、MULTI_FILE、vue_project");
             // 统一转换为大写格式
             app.setCodeGenType(codeGenTypeEnum.getValue());
         }
@@ -401,20 +413,35 @@ public class AppServiceImpl implements AppService {
 
         // 4. 获取应用的代码生成类型
         String codeGenTypeStr = app.getCodeGenType();
-        com.zkf.aicodemother.core.CodeGenTypeEnum codeGenTypeEnum =
-                com.zkf.aicodemother.core.CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
+        // 使用 model.enums 包中的枚举，与 StreamHandlerExecutor 保持一致
+        com.zkf.aicodemother.model.enums.CodeGenTypeEnum codeGenTypeEnum =
+                com.zkf.aicodemother.model.enums.CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
         if (codeGenTypeEnum == null) {
             // 如果 codeGenType 无效，默认使用 HTML
-            codeGenTypeEnum = com.zkf.aicodemother.core.CodeGenTypeEnum.HTML;
+            codeGenTypeEnum = com.zkf.aicodemother.model.enums.CodeGenTypeEnum.HTML;
             log.warn("应用 {} 的代码生成类型无效: {}，使用默认值 HTML", appId, codeGenTypeStr);
         }
 
         // 5. 保存用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, MessageTypeEnum.USER.getValue(), loginUser.getId());
 
-        // 6. 调用 AI 生成代码（流式），传递 userId 用于创建版本
-        reactor.core.publisher.Flux<String> contentFlux = aiCodeGeneratorFacade
-                .generateAndSaveCodeStream(message, codeGenTypeEnum, appId, loginUser.getId());
+        // 6. 根据代码生成类型选择不同的处理流程
+        reactor.core.publisher.Flux<String> contentFlux;
+
+        if (codeGenTypeEnum == com.zkf.aicodemother.model.enums.CodeGenTypeEnum.VUE_PROJECT) {
+            // VUE_PROJECT 类型使用专门的工具调用流程
+            contentFlux = handleVueProjectGeneration(appId, message, loginUser, app);
+        } else {
+            // HTML/MULTI_FILE 类型使用传统流程
+            // 需要将 model.enums.CodeGenTypeEnum 转换为 core.CodeGenTypeEnum
+            com.zkf.aicodemother.core.CodeGenTypeEnum coreCodeGenTypeEnum =
+                    com.zkf.aicodemother.core.CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
+            if (coreCodeGenTypeEnum == null) {
+                coreCodeGenTypeEnum = com.zkf.aicodemother.core.CodeGenTypeEnum.HTML;
+            }
+            contentFlux = aiCodeGeneratorFacade
+                    .generateAndSaveCodeStream(message, coreCodeGenTypeEnum, appId, loginUser.getId());
+        }
 
         // 7. 收集 AI 响应内容并在完成后记录到对话历史
         StringBuilder aiResponseBuilder = new StringBuilder();
@@ -437,6 +464,55 @@ public class AppServiceImpl implements AppService {
                     chatHistoryService.addChatMessage(appId, errorMessage, MessageTypeEnum.AI.getValue(), loginUser.getId());
                     log.error("AI 生成代码失败: appId={}, error={}", appId, error.getMessage());
                 });
+    }
+
+    /**
+     * 处理 VUE_PROJECT 类型的代码生成
+     * 使用工具调用流程，支持创建和修改场景
+     *
+     * @param appId     应用 ID
+     * @param message   用户消息
+     * @param loginUser 登录用户
+     * @param app       应用实体
+     * @return 流式响应
+     */
+    private reactor.core.publisher.Flux<String> handleVueProjectGeneration(Long appId, String message, User loginUser, App app) {
+        // 判断是创建场景还是修改场景
+        // 如果 currentVersion 为空或为 0，则是创建场景；否则是修改场景
+        com.zkf.aicodemother.model.enums.GenerationSceneEnum scene =
+                (app.getCurrentVersion() == null || app.getCurrentVersion() == 0)
+                        ? com.zkf.aicodemother.model.enums.GenerationSceneEnum.CREATION
+                        : com.zkf.aicodemother.model.enums.GenerationSceneEnum.MODIFICATION;
+
+        log.info("VUE_PROJECT 生成: appId={}, scene={}", appId, scene.getValue());
+
+        // 根据场景获取对应的 AI 服务
+        Object aiService = aiServiceFactory.getVueProjectService(appId, scene);
+
+        // 获取 TokenStream 并转换为 Flux<String>
+        dev.langchain4j.service.TokenStream tokenStream;
+        if (scene == com.zkf.aicodemother.model.enums.GenerationSceneEnum.CREATION) {
+            com.zkf.aicodemother.ai.AiCodeCreator creator =
+                    (com.zkf.aicodemother.ai.AiCodeCreator) aiService;
+            tokenStream = creator.generateCodeStream(appId, message);
+        } else {
+            com.zkf.aicodemother.ai.AiCodeModifier modifier =
+                    (com.zkf.aicodemother.ai.AiCodeModifier) aiService;
+            tokenStream = modifier.updateCodeStream(appId, message);
+        }
+
+        // 使用自定义转换器将 TokenStream 转换为 Flux<String>
+        reactor.core.publisher.Flux<String> originFlux =
+                com.zkf.aicodemother.utils.TokenStreamConverter.toFlux(tokenStream);
+
+        // 使用 StreamHandlerExecutor 处理 Flux<String>
+        return streamHandlerExecutor.doExecute(
+                originFlux,
+                chatHistoryService,
+                appId,
+                loginUser,
+                com.zkf.aicodemother.model.enums.CodeGenTypeEnum.VUE_PROJECT
+        );
     }
 
     @Override
@@ -472,7 +548,27 @@ public class AppServiceImpl implements AppService {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用代码不存在，请先生成代码");
         }
 
-        // 7. 复制文件到部署目录
+        // 7. 如果是 Vue 项目，需要构建并使用 dist 目录
+        com.zkf.aicodemother.model.enums.CodeGenTypeEnum codeGenTypeEnum =
+                com.zkf.aicodemother.model.enums.CodeGenTypeEnum.getEnumByValue(codeGenType);
+        if (codeGenTypeEnum == com.zkf.aicodemother.model.enums.CodeGenTypeEnum.VUE_PROJECT) {
+            // Vue 项目需要先构建
+            log.info("开始构建 Vue 项目，appId: {}", appId);
+            boolean buildSuccess = vueProjectBuilder.buildProject(sourceDirPath);
+            if (!buildSuccess) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Vue 项目构建失败，请检查代码或重试");
+            }
+
+            // 使用 dist 目录作为部署源
+            java.io.File distDir = new java.io.File(sourceDir, "dist");
+            if (!distDir.exists() || !distDir.isDirectory()) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Vue 项目构建后 dist 目录不存在");
+            }
+            sourceDir = distDir;
+            log.info("Vue 项目构建成功，使用 dist 目录部署: {}", distDir.getAbsolutePath());
+        }
+
+        // 8. 复制文件到部署目录
         String deployDirPath = com.zkf.aicodemother.constant.AppConstant.CODE_DEPLOY_ROOT_DIR + java.io.File.separator + deployKey;
         try {
             cn.hutool.core.io.FileUtil.copyContent(sourceDir, new java.io.File(deployDirPath), true);
@@ -480,7 +576,7 @@ public class AppServiceImpl implements AppService {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "部署失败：" + e.getMessage());
         }
 
-        // 8. 更新应用的 deployKey 和部署时间
+        // 9. 更新应用的 deployKey 和部署时间
         App updateApp = new App();
         updateApp.setId(appId);
         updateApp.setDeployKey(deployKey);
@@ -488,12 +584,59 @@ public class AppServiceImpl implements AppService {
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
 
-        // 9. 返回可访问的 URL
+        // 10. 异步生成部署后的截图封面
+        generateDeployCoverAsync(appId, deployKey);
+
+        // 11. 返回可访问的 URL
         return String.format("%s/%s/", appConfig.getDeploy().getHost(), deployKey);
+    }
+
+    /**
+     * 异步生成部署后的截图封面
+     *
+     * @param appId     应用 ID
+     * @param deployKey 部署 Key
+     */
+    private void generateDeployCoverAsync(Long appId, String deployKey) {
+        if (appId == null || StrUtil.isBlank(deployKey)) {
+            return;
+        }
+        // 构建部署后的访问 URL
+        String deployUrl = String.format("%s/%s/", appConfig.getDeploy().getHost(), deployKey);
+        log.info("开始异步生成部署截图封面: appId={}, url={}", appId, deployUrl);
+
+        // 异步执行截图
+        screenshotService.generateAndUploadScreenshotAsync(deployUrl)
+                .thenAccept(coverUrl -> {
+                    if (StrUtil.isNotBlank(coverUrl)) {
+                        // 更新应用封面
+                        boolean updated = this.updateCover(appId, coverUrl);
+                        if (updated) {
+                            log.info("部署截图封面更新成功: appId={}, coverUrl={}", appId, coverUrl);
+                        } else {
+                            log.warn("部署截图封面更新失败: appId={}", appId);
+                        }
+                    } else {
+                        log.warn("部署截图生成失败，无法更新封面: appId={}", appId);
+                    }
+                });
     }
 
     @Override
     public boolean stopGeneration(String sessionId) {
         return sessionManager.cancelSession(sessionId);
+    }
+
+    @Override
+    public boolean updateCover(Long appId, String coverUrl) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        ThrowUtils.throwIf(StrUtil.isBlank(coverUrl), ErrorCode.PARAMS_ERROR, "封面URL不能为空");
+
+        App app = new App();
+        app.setId(appId);
+        app.setCover(coverUrl);
+        app.setEditTime(LocalDateTime.now());
+
+        return appMapper.update(app) > 0;
     }
 }

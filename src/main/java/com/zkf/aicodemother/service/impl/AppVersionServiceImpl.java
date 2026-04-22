@@ -71,6 +71,19 @@ public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVers
             currentVersion = 0;
         }
 
+        // 幂等性检查：如果已存在相同的 appId + versionNumber，直接返回已存在的版本ID
+        // 这可以防止前端重复调用 createVersion 导致的唯一键冲突
+        int nextVersionNumber = currentVersion + 1;
+        QueryWrapper existingCheck = QueryWrapper.create()
+                .eq("app_id", request.getAppId())
+                .eq("version_number", nextVersionNumber);
+        AppVersion existingVersion = appVersionMapper.selectOneByQuery(existingCheck);
+        if (existingVersion != null) {
+            log.info("版本已存在，跳过创建: appId={}, versionNumber={}, existingVersionId={}",
+                    request.getAppId(), nextVersionNumber, existingVersion.getId());
+            return existingVersion.getId();
+        }
+
         // 获取上一版本内容，计算差异
         String oldContent = getCurrentVersionContent(request.getAppId());
         String diffSummary = "";
@@ -92,14 +105,14 @@ public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVers
         // 创建新版本
         AppVersion version = new AppVersion();
         version.setAppId(request.getAppId());
-        version.setVersionNumber(currentVersion + 1);
-        version.setVersionName(StrUtil.isNotBlank(request.getVersionName()) 
-                ? request.getVersionName() 
-                : "v" + (currentVersion + 1));
+        version.setVersionNumber(nextVersionNumber);
+        version.setVersionName(StrUtil.isNotBlank(request.getVersionName())
+                ? request.getVersionName()
+                : "v" + nextVersionNumber);
         version.setContent(request.getContent());
         version.setSummary(request.getSummary());
-        version.setChangeType(StrUtil.isNotBlank(request.getChangeType()) 
-                ? request.getChangeType() 
+        version.setChangeType(StrUtil.isNotBlank(request.getChangeType())
+                ? request.getChangeType()
                 : ChangeTypeEnum.UPDATE.getValue());
         version.setDiffSummary(diffSummary);
         version.setCreatedAt(LocalDateTime.now());
@@ -111,13 +124,13 @@ public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVers
         ThrowUtils.throwIf(!success, ErrorCode.OPERATION_ERROR, "创建版本失败");
 
         // 更新应用版本信息
-        app.setCurrentVersion(currentVersion + 1);
-        app.setTotalVersions(currentVersion + 1);
+        app.setCurrentVersion(nextVersionNumber);
+        app.setTotalVersions(nextVersionNumber);
         app.setLatestVersionTime(LocalDateTime.now());
         appMapper.update(app);
 
 
-        log.info("创建版本成功: appId={}, versionId={}, versionNumber={}", 
+        log.info("创建版本成功: appId={}, versionId={}, versionNumber={}",
                 request.getAppId(), version.getId(), version.getVersionNumber());
 
         return version.getId();

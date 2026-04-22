@@ -101,6 +101,20 @@ public class UserController {
         return ResultUtils.success(userService.getLoginUserVO(loginUser));
     }
 
+    /**
+     * Session 保活接口
+     * 用于 SSE 长连接期间保持 session 活跃，防止 session 失效
+     *
+     * @param request 请求对象
+     * @return 操作结果
+     */
+    @GetMapping("/session/keepalive")
+    public BaseResponse<Void> keepAliveSession(HttpServletRequest request) {
+        // 仅触发 session attribute 读取，刷新 Redis TTL
+        request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        return ResultUtils.success(null);
+    }
+
     // endregion
 
     // region 管理员接口

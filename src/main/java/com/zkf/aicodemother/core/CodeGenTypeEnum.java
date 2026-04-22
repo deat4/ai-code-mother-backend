@@ -11,7 +11,8 @@ import java.util.Arrays;
 public enum CodeGenTypeEnum {
 
     HTML("HTML", "单文件HTML代码生成"),
-    MULTI_FILE("MULTI_FILE", "多文件代码生成");
+    MULTI_FILE("MULTI_FILE", "多文件代码生成"),
+    VUE_PROJECT("vue_project", "Vue项目代码生成");
 
     private final String value;
 

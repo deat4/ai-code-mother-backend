@@ -3,6 +3,7 @@ package com.zkf.aicodemother.core;
 import cn.hutool.core.util.StrUtil;
 import com.zkf.aicodemother.ai.model.HtmlCodeResult;
 import com.zkf.aicodemother.ai.model.MultiFileCodeResult;
+import com.zkf.aicodemother.config.AppConfig;
 import com.zkf.aicodemother.core.parser.CodeParserExecutor;
 import com.zkf.aicodemother.core.saver.CodeFileSaverExecutor;
 import com.zkf.aicodemother.exception.BusinessException;
@@ -11,7 +12,9 @@ import com.zkf.aicodemother.model.dto.appversion.AppVersionAddRequest;
 import com.zkf.aicodemother.model.enums.ChangeTypeEnum;
 import com.zkf.aicodemother.config.AiCodeGeneratorServiceFactory;
 
+import com.zkf.aicodemother.service.AppService;
 import com.zkf.aicodemother.service.AppVersionService;
+import com.zkf.aicodemother.service.impl.ScreenshotServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +35,16 @@ public class AiCodeGeneratorFacade {
     @Resource
     private AppVersionService appVersionService;
 
+    @Resource
+    @org.springframework.context.annotation.Lazy
+    private AppService appService;
+
+    @Resource
+    private ScreenshotServiceImpl screenshotService;
+
+    @Resource
+    private AppConfig appConfig;
+
     /**
      * 统一入口：根据类型生成并保存代码
      *
@@ -45,15 +58,15 @@ public class AiCodeGeneratorFacade {
         }
         return switch (codeGenTypeEnum) {
             case HTML -> {
-                HtmlCodeResult result = aiServiceFactory.getAiCodeGeneratorService(0L).generateHtmlCode(userMessage);
-
+                HtmlCodeResult result = aiServiceFactory.getAiCodeGeneratorService(0L, convertToModelEnum(codeGenTypeEnum)).generateHtmlCode(userMessage);
                 yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.HTML);
             }
             case MULTI_FILE -> {
-                MultiFileCodeResult result = aiServiceFactory.getAiCodeGeneratorService(0L).generateMultiFileCode(userMessage);
-
+                MultiFileCodeResult result = aiServiceFactory.getAiCodeGeneratorService(0L, convertToModelEnum(codeGenTypeEnum)).generateMultiFileCode(userMessage);
                 yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.MULTI_FILE);
             }
+            case VUE_PROJECT -> throw new BusinessException(ErrorCode.PARAMS_ERROR,
+                    "VUE_PROJECT 类型不支持此方法，请使用 Vue 项目专用的生成流程");
         };
     }
 
@@ -71,15 +84,15 @@ public class AiCodeGeneratorFacade {
         }
         return switch (codeGenTypeEnum) {
             case HTML -> {
-                HtmlCodeResult result = aiServiceFactory.getAiCodeGeneratorService(appId).generateHtmlCode(userMessage);
-
+                HtmlCodeResult result = aiServiceFactory.getAiCodeGeneratorService(appId, convertToModelEnum(codeGenTypeEnum)).generateHtmlCode(userMessage);
                 yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.HTML, appId);
             }
             case MULTI_FILE -> {
-                MultiFileCodeResult result = aiServiceFactory.getAiCodeGeneratorService(appId).generateMultiFileCode(userMessage);
-
+                MultiFileCodeResult result = aiServiceFactory.getAiCodeGeneratorService(appId, convertToModelEnum(codeGenTypeEnum)).generateMultiFileCode(userMessage);
                 yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.MULTI_FILE, appId);
             }
+            case VUE_PROJECT -> throw new BusinessException(ErrorCode.PARAMS_ERROR,
+                    "VUE_PROJECT 类型不支持此方法，请使用 Vue 项目专用的生成流程");
         };
     }
 
@@ -96,15 +109,15 @@ public class AiCodeGeneratorFacade {
         }
         return switch (codeGenTypeEnum) {
             case HTML -> {
-                Flux<String> codeStream = aiServiceFactory.getAiCodeGeneratorService(0L).generateHtmlCodeStream(userMessage);
-
+                Flux<String> codeStream = aiServiceFactory.getAiCodeGeneratorService(0L, convertToModelEnum(codeGenTypeEnum)).generateHtmlCodeStream(userMessage);
                 yield processCodeStream(codeStream, CodeGenTypeEnum.HTML);
             }
             case MULTI_FILE -> {
-                Flux<String> codeStream = aiServiceFactory.getAiCodeGeneratorService(0L).generateMultiFileCodeStream(userMessage);
-
+                Flux<String> codeStream = aiServiceFactory.getAiCodeGeneratorService(0L, convertToModelEnum(codeGenTypeEnum)).generateMultiFileCodeStream(userMessage);
                 yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE);
             }
+            case VUE_PROJECT -> throw new BusinessException(ErrorCode.PARAMS_ERROR,
+                    "VUE_PROJECT 类型不支持此方法，请使用 Vue 项目专用的生成流程");
         };
     }
 
@@ -135,15 +148,15 @@ public class AiCodeGeneratorFacade {
         }
         return switch (codeGenTypeEnum) {
             case HTML -> {
-                Flux<String> codeStream = aiServiceFactory.getAiCodeGeneratorService(appId).generateHtmlCodeStream(userMessage);
-
+                Flux<String> codeStream = aiServiceFactory.getAiCodeGeneratorService(appId, convertToModelEnum(codeGenTypeEnum)).generateHtmlCodeStream(userMessage);
                 yield processCodeStream(codeStream, CodeGenTypeEnum.HTML, appId, userMessage, userId);
             }
             case MULTI_FILE -> {
-                Flux<String> codeStream = aiServiceFactory.getAiCodeGeneratorService(appId).generateMultiFileCodeStream(userMessage);
-
+                Flux<String> codeStream = aiServiceFactory.getAiCodeGeneratorService(appId, convertToModelEnum(codeGenTypeEnum)).generateMultiFileCodeStream(userMessage);
                 yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId, userMessage, userId);
             }
+            case VUE_PROJECT -> throw new BusinessException(ErrorCode.PARAMS_ERROR,
+                    "VUE_PROJECT 类型不支持此方法，请使用 Vue 项目专用的生成流程");
         };
     }
 
@@ -202,6 +215,15 @@ public class AiCodeGeneratorFacade {
                 .doOnComplete(() -> {
                     try {
                         String completeCode = codeBuilder.toString();
+                        // 记录原始内容以便调试
+                        log.info("流式响应完成，原始内容长度: {}", completeCode.length());
+                        log.debug("原始内容前200字符: {}", completeCode.substring(0, Math.min(200, completeCode.length())));
+
+                        // 检查是否包含转义序列
+                        boolean containsLiteralEscape = completeCode.contains("\\n") && !completeCode.contains("\n");
+                        boolean containsRealNewline = completeCode.contains("\n");
+                        log.info("内容分析: 包含字面转义序列={}, 包含实际换行符={}", containsLiteralEscape, containsRealNewline);
+
                         // 使用执行器解析代码
                         Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
                         // 使用执行器保存代码（使用 appId）
@@ -213,10 +235,13 @@ public class AiCodeGeneratorFacade {
                             String versionContent = extractVersionContent(parsedResult);
                             createVersionRecord(appId, userId, versionContent, userMessage);
                         }
+
+                        // 异步生成截图封面
+                        generateCoverAsync(appId, codeGenType);
                     } catch (Exception e) {
                         log.error("代码保存失败: {}", e.getMessage(), e);
                     }
-                }); // 修复1：补全了 Lambda 和方法的闭合括号
+                });
     }
 
     /**
@@ -245,7 +270,6 @@ public class AiCodeGeneratorFacade {
             log.error("版本记录创建失败: {}", e.getMessage(), e);
         }
     }
-    // 修复2：删除了这里多余的类闭合括号 `}`，让 extractVersionContent 能够回到类内部
 
     /**
      * 从解析结果中提取版本内容
@@ -263,5 +287,45 @@ public class AiCodeGeneratorFacade {
         return "";
     }
 
+    /**
+     * 异步生成截图封面
+     *
+     * @param appId       应用 ID
+     * @param codeGenType 代码生成类型
+     */
+    private void generateCoverAsync(Long appId, CodeGenTypeEnum codeGenType) {
+        if (appId == null) {
+            return;
+        }
+        // 构建预览 URL
+        String previewUrl = String.format("%s/%s_%s/index.html",
+                appConfig.getPreview().getHost(), codeGenType.getValue(), appId);
+        log.info("开始异步生成截图封面: appId={}, url={}", appId, previewUrl);
 
-} // 此处为整个类的正确闭合
+        // 异步执行截图
+        screenshotService.generateAndUploadScreenshotAsync(previewUrl)
+                .thenAccept(coverUrl -> {
+                    if (StrUtil.isNotBlank(coverUrl)) {
+                        // 更新应用封面
+                        boolean updated = appService.updateCover(appId, coverUrl);
+                        if (updated) {
+                            log.info("应用封面更新成功: appId={}, coverUrl={}", appId, coverUrl);
+                        } else {
+                            log.warn("应用封面更新失败: appId={}", appId);
+                        }
+                    } else {
+                        log.warn("截图生成失败，无法更新封面: appId={}", appId);
+                    }
+                });
+    }
+
+    /**
+     * 将 core.CodeGenTypeEnum 转换为 model.enums.CodeGenTypeEnum
+     */
+    private com.zkf.aicodemother.model.enums.CodeGenTypeEnum convertToModelEnum(CodeGenTypeEnum coreEnum) {
+        if (coreEnum == null) {
+            return null;
+        }
+        return com.zkf.aicodemother.model.enums.CodeGenTypeEnum.getEnumByValue(coreEnum.getValue());
+    }
+}

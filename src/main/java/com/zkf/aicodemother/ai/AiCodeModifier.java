@@ -1,5 +1,6 @@
 package com.zkf.aicodemother.ai;
 
+import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
@@ -13,9 +14,10 @@ public interface AiCodeModifier {
     /**
      * 修改代码（流式传输）
      *
+     * @param appId             应用ID（作为 MemoryId，传递给工具）
      * @param modificationRequest 修改请求（需求描述）
      * @return Token 流
      */
     @SystemMessage(fromResource = "prompt/vue-project-modify-system-prompt.txt")
-    TokenStream updateCodeStream(@UserMessage String modificationRequest);
+    TokenStream updateCodeStream(@MemoryId long appId, @UserMessage String modificationRequest);
 }

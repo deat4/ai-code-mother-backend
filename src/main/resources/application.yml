@@ -1,6 +1,9 @@
 spring:
   application:
     name: ai-code-mother-backend
+  main:
+    # 允许覆盖 Bean 定义，用于自定义 SessionRepositoryFilter 配置
+    allow-bean-definition-overriding: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/ai-code-mother
