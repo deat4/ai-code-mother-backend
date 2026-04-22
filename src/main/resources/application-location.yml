@@ -4,7 +4,7 @@ langchain4j:
     # 基础聊天模型配置（保留原有）
     chat-model:
       base-url: https://api.deepseek.com
-      api-key: sk-19746d21ff604135b0789d48fb455057
+      api-key: ${DEEPSEEK_API_KEY}
       model-name: deepseek-chat
       max-tokens: 8192
       temperature: 0.7
@@ -12,33 +12,49 @@ langchain4j:
       log-responses: true
       response-format: json_object
       strict-json-schema: true
+      timeout: 180s
 
     # 流式聊天模型配置（多例模式）- 用于 HTML/MULTI_FILE 生成
     streaming-chat-model:
       base-url: https://api.deepseek.com
-      api-key: sk-19746d21ff604135b0789d48fb455057
+      api-key: ${DEEPSEEK_API_KEY}
       model-name: deepseek-chat
       max-tokens: 8192
       temperature: 0.7
       log-requests: true
       log-responses: true
+      timeout: 180s
 
     # 推理流式模型配置（多例模式）- 用于 Vue 项目生成，带工具调用
+    # 注意：deepseek-reasoner 有不同的流式响应格式，不适合 LangChain4j 的 TokenStream
+    # 使用 deepseek-chat 更适合工具调用场景
     reasoning-streaming-chat-model:
       base-url: https://api.deepseek.com
-      api-key: sk-19746d21ff604135b0789d48fb455057
+      api-key: ${DEEPSEEK_API_KEY}
       model-name: deepseek-chat
       max-tokens: 8192
       temperature: 0.1
       log-requests: true
       log-responses: true
+      timeout: 300s
 
     # 智能路由模型配置（多例模式）- 用于代码生成类型判断
     routing-chat-model:
       base-url: https://api.deepseek.com
-      api-key: sk-19746d21ff604135b0789d48fb455057
+      api-key: ${DEEPSEEK_API_KEY}
       model-name: deepseek-chat
       max-tokens: 1024
       temperature: 0.3
       log-requests: false
       log-responses: false
+      timeout: 60s
+
+# 腾讯云 COS 配置 - 用于截图封面存储
+# 注意：请从环境变量获取密钥，不要在此文件中存储实际值
+cos:
+  client:
+    secret-id: ${COS_SECRET_ID}
+    secret-key: ${COS_SECRET_KEY}
+    region: ap-shanghai
+    bucket: ai-code-mother-1317208375
+    host: https://ai-code-mother-1317208375.cos.ap-shanghai.myqcloud.com
