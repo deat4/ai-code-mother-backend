@@ -162,6 +162,17 @@ public interface AppService {
     reactor.core.publisher.Flux<String> chatToGenCode(Long appId, String message, User loginUser);
 
     /**
+     * 与 AI 对话生成代码（流式，带任务跟踪）
+     *
+     * @param appId     应用 ID
+     * @param message   用户消息
+     * @param loginUser 登录用户
+     * @param taskId    任务 ID
+     * @return 流式响应
+     */
+    reactor.core.publisher.Flux<String> chatToGenCode(Long appId, String message, User loginUser, Long taskId);
+
+    /**
      * 停止 AI 生成
      *
      * @param sessionId 会话ID

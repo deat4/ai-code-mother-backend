@@ -11,6 +11,12 @@ import com.zkf.aicodemother.exception.ErrorCode;
 import com.zkf.aicodemother.model.dto.appversion.AppVersionAddRequest;
 import com.zkf.aicodemother.model.enums.ChangeTypeEnum;
 import com.zkf.aicodemother.config.AiCodeGeneratorServiceFactory;
+import com.zkf.aicodemother.model.enums.GenerationTaskStageEnum;
+import com.zkf.aicodemother.model.enums.GenerationTaskLogTypeEnum;
+import com.zkf.aicodemother.service.GenerationTaskService;
+import com.zkf.aicodemother.service.GenerationValidationOrchestrator;
+import com.zkf.aicodemother.core.validation.ValidationContext;
+import com.zkf.aicodemother.core.validation.ValidationResult;
 
 import com.zkf.aicodemother.service.AppService;
 import com.zkf.aicodemother.service.AppVersionService;
@@ -44,6 +50,12 @@ public class AiCodeGeneratorFacade {
 
     @Resource
     private AppConfig appConfig;
+
+    @Resource
+    private GenerationTaskService generationTaskService;
+
+    @Resource
+    private GenerationValidationOrchestrator validationOrchestrator;
 
     /**
      * 统一入口：根据类型生成并保存代码
@@ -143,17 +155,31 @@ public class AiCodeGeneratorFacade {
      * @return 流式响应
      */
     public Flux<String> generateAndSaveCodeStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum, Long appId, Long userId) {
+        return generateAndSaveCodeStream(userMessage, codeGenTypeEnum, appId, userId, null);
+    }
+
+    /**
+     * 统一入口：根据类型生成并保存代码（流式，使用 appId、userId 和 taskId）
+     *
+     * @param userMessage     用户提示词
+     * @param codeGenTypeEnum 生成类型
+     * @param appId           应用 ID
+     * @param userId          用户 ID（用于创建版本）
+     * @param taskId          任务 ID
+     * @return 流式响应
+     */
+    public Flux<String> generateAndSaveCodeStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum, Long appId, Long userId, Long taskId) {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
         }
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 Flux<String> codeStream = aiServiceFactory.getAiCodeGeneratorService(appId, convertToModelEnum(codeGenTypeEnum)).generateHtmlCodeStream(userMessage);
-                yield processCodeStream(codeStream, CodeGenTypeEnum.HTML, appId, userMessage, userId);
+                yield processCodeStream(codeStream, CodeGenTypeEnum.HTML, appId, userMessage, userId, taskId);
             }
             case MULTI_FILE -> {
                 Flux<String> codeStream = aiServiceFactory.getAiCodeGeneratorService(appId, convertToModelEnum(codeGenTypeEnum)).generateMultiFileCodeStream(userMessage);
-                yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId, userMessage, userId);
+                yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId, userMessage, userId, taskId);
             }
             case VUE_PROJECT -> throw new BusinessException(ErrorCode.PARAMS_ERROR,
                     "VUE_PROJECT 类型不支持此方法，请使用 Vue 项目专用的生成流程");
@@ -195,7 +221,7 @@ public class AiCodeGeneratorFacade {
      * @return 流式响应
      */
     private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType, Long appId) {
-        return processCodeStream(codeStream, codeGenType, appId, null, null);
+        return processCodeStream(codeStream, codeGenType, appId, null, null, null);
     }
 
     /**
@@ -209,20 +235,29 @@ public class AiCodeGeneratorFacade {
      * @return 流式响应
      */
     private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType, Long appId, String userMessage, Long userId) {
+        return processCodeStream(codeStream, codeGenType, appId, userMessage, userId, null);
+    }
+
+    /**
+     * 通用流式代码处理方法（使用 appId、版本创建和任务跟踪）
+     *
+     * @param codeStream  代码流
+     * @param codeGenType 代码生成类型
+     * @param appId       应用 ID
+     * @param userMessage 用户提示词（用于版本摘要）
+     * @param userId      用户 ID（用于创建版本）
+     * @param taskId      任务 ID
+     * @return 流式响应
+     */
+    private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType, Long appId, String userMessage, Long userId, Long taskId) {
         StringBuilder codeBuilder = new StringBuilder();
         return codeStream
                 .doOnNext(codeBuilder::append)
-                .doOnComplete(() -> {
+                .concatWith(Flux.defer(() -> {
+                    // 在原始流完成后执行处理和校验，并发出事件
                     try {
                         String completeCode = codeBuilder.toString();
-                        // 记录原始内容以便调试
                         log.info("流式响应完成，原始内容长度: {}", completeCode.length());
-                        log.debug("原始内容前200字符: {}", completeCode.substring(0, Math.min(200, completeCode.length())));
-
-                        // 检查是否包含转义序列
-                        boolean containsLiteralEscape = completeCode.contains("\\n") && !completeCode.contains("\n");
-                        boolean containsRealNewline = completeCode.contains("\n");
-                        log.info("内容分析: 包含字面转义序列={}, 包含实际换行符={}", containsLiteralEscape, containsRealNewline);
 
                         // 使用执行器解析代码
                         Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
@@ -236,10 +271,59 @@ public class AiCodeGeneratorFacade {
                             createVersionRecord(appId, userId, versionContent, userMessage);
                         }
 
-                        // 异步生成截图封面
-                        generateCoverAsync(appId, codeGenType);
+                        // 更新任务日志
+                        if (taskId != null) {
+                            generationTaskService.appendLog(taskId, GenerationTaskStageEnum.GENERATING,
+                                    GenerationTaskLogTypeEnum.INFO, "代码生成完成，已保存文件");
+                        }
+
+                        // 执行校验（HTML/MULTI_FILE）
+                        if (taskId != null) {
+                            ValidationContext validationContext = ValidationContext.builder()
+                                    .taskId(taskId)
+                                    .appId(appId)
+                                    .userId(userId)
+                                    .codeGenType(codeGenType.getValue())
+                                    .projectRootPath(savedDir.getAbsolutePath())
+                                    .build();
+
+                            ValidationResult validationResult = validationOrchestrator.validateAndUpdateTask(validationContext);
+
+                            // 发出 validation_result 事件
+                            cn.hutool.json.JSONObject validationData = new cn.hutool.json.JSONObject();
+                            validationData.set("taskId", taskId);
+                            validationData.set("passed", validationResult.isPassed());
+                            validationData.set("summary", validationResult.getSummary());
+                            validationData.set("stage", validationResult.getStage());
+                            validationData.set("issues", validationResult.getIssues());
+                            if (validationResult.getBuildResult() != null) {
+                                validationData.set("buildResult", validationResult.getBuildResult());
+                            }
+
+                            // 校验通过才生成截图，否则直接结束
+                            if (validationResult.isPassed()) {
+                                generateCoverAsync(appId, codeGenType, taskId);
+                            } else {
+                                log.warn("校验失败，跳过截图生成: appId={}, taskId={}", appId, taskId);
+                            }
+
+                            return Flux.just("EVENT:validation_result:" + validationData.toString());
+                        } else {
+                            // 无 taskId 时直接生成截图
+                            generateCoverAsync(appId, codeGenType, taskId);
+                        }
                     } catch (Exception e) {
                         log.error("代码保存失败: {}", e.getMessage(), e);
+                        if (taskId != null) {
+                            generationTaskService.markFailed(taskId, "代码保存失败: " + e.getMessage());
+                        }
+                    }
+                    return Flux.empty();
+                }))
+                .doOnError(error -> {
+                    log.error("代码生成流失败: {}", error.getMessage());
+                    if (taskId != null) {
+                        generationTaskService.markFailed(taskId, "代码生成流失败: " + error.getMessage());
                     }
                 });
     }
@@ -294,13 +378,29 @@ public class AiCodeGeneratorFacade {
      * @param codeGenType 代码生成类型
      */
     private void generateCoverAsync(Long appId, CodeGenTypeEnum codeGenType) {
+        generateCoverAsync(appId, codeGenType, null);
+    }
+
+    /**
+     * 异步生成截图封面（带任务跟踪）
+     *
+     * @param appId       应用 ID
+     * @param codeGenType 代码生成类型
+     * @param taskId      任务 ID
+     */
+    private void generateCoverAsync(Long appId, CodeGenTypeEnum codeGenType, Long taskId) {
         if (appId == null) {
             return;
         }
         // 构建预览 URL
         String previewUrl = String.format("%s/%s_%s/index.html",
                 appConfig.getPreview().getHost(), codeGenType.getValue(), appId);
-        log.info("开始异步生成截图封面: appId={}, url={}", appId, previewUrl);
+        log.info("开始异步生成截图封面: appId={}, url={}, taskId={}", appId, previewUrl, taskId);
+
+        // 更新任务阶段为 SCREENSHOT
+        if (taskId != null) {
+            generationTaskService.updateStage(taskId, GenerationTaskStageEnum.SCREENSHOT);
+        }
 
         // 异步执行截图
         screenshotService.generateAndUploadScreenshotAsync(previewUrl)
@@ -313,9 +413,30 @@ public class AiCodeGeneratorFacade {
                         } else {
                             log.warn("应用封面更新失败: appId={}", appId);
                         }
+                        // 记录截图日志并标记任务成功
+                        if (taskId != null) {
+                            generationTaskService.appendLog(taskId, GenerationTaskStageEnum.SCREENSHOT,
+                                    GenerationTaskLogTypeEnum.INFO, "截图生成完成");
+                            generationTaskService.markSuccess(taskId);
+                        }
                     } else {
                         log.warn("截图生成失败，无法更新封面: appId={}", appId);
+                        // 截图失败不标记任务失败，只记日志
+                        if (taskId != null) {
+                            generationTaskService.appendLog(taskId, GenerationTaskStageEnum.SCREENSHOT,
+                                    GenerationTaskLogTypeEnum.ERROR, "截图生成失败");
+                            generationTaskService.markSuccess(taskId);
+                        }
                     }
+                })
+                .exceptionally(e -> {
+                    log.error("截图任务异常: appId={}", appId, e);
+                    if (taskId != null) {
+                        generationTaskService.appendLog(taskId, GenerationTaskStageEnum.SCREENSHOT,
+                                GenerationTaskLogTypeEnum.ERROR, "截图任务异常: " + e.getMessage());
+                        generationTaskService.markSuccess(taskId);
+                    }
+                    return null;
                 });
     }
 

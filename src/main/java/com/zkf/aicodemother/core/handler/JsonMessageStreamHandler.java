@@ -12,6 +12,12 @@ import com.zkf.aicodemother.core.builder.VueProjectBuilder;
 import com.zkf.aicodemother.model.entity.ChatHistoryOriginal;
 import com.zkf.aicodemother.model.entity.User;
 import com.zkf.aicodemother.model.enums.MessageTypeEnum;
+import com.zkf.aicodemother.model.enums.GenerationTaskStageEnum;
+import com.zkf.aicodemother.model.enums.GenerationTaskLogTypeEnum;
+import com.zkf.aicodemother.service.GenerationTaskService;
+import com.zkf.aicodemother.service.GenerationValidationOrchestrator;
+import com.zkf.aicodemother.core.validation.ValidationContext;
+import com.zkf.aicodemother.core.validation.ValidationResult;
 import com.zkf.aicodemother.service.AppService;
 import com.zkf.aicodemother.service.ChatHistoryOriginalService;
 import com.zkf.aicodemother.service.ChatHistoryService;
@@ -59,6 +65,12 @@ public class JsonMessageStreamHandler {
     @Resource
     private AppConfig appConfig;
 
+    @Resource
+    private GenerationTaskService generationTaskService;
+
+    @Resource
+    private GenerationValidationOrchestrator validationOrchestrator;
+
     /**
      * 处理 TokenStream（VUE_PROJECT）
      * 解析 JSON 消息并重组为完整的响应格式
@@ -72,6 +84,23 @@ public class JsonMessageStreamHandler {
     public Flux<String> handle(Flux<String> originFlux,
                                ChatHistoryService chatHistoryService,
                                long appId, User loginUser) {
+        return handle(originFlux, chatHistoryService, appId, loginUser, null);
+    }
+
+    /**
+     * 处理 TokenStream（VUE_PROJECT，带任务跟踪）
+     * 解析 JSON 消息并重组为完整的响应格式
+     *
+     * @param originFlux         原始流
+     * @param chatHistoryService 聊天历史服务
+     * @param appId              应用ID
+     * @param loginUser          登录用户
+     * @param taskId             任务ID
+     * @return 处理后的流
+     */
+    public Flux<String> handle(Flux<String> originFlux,
+                               ChatHistoryService chatHistoryService,
+                               long appId, User loginUser, Long taskId) {
         // 收集数据用于生成后端记忆格式（前端展示用）
         StringBuilder chatHistoryStringBuilder = new StringBuilder();
         // 收集原始消息用于 AI 记忆恢复（包含完整工具调用信息）
@@ -85,8 +114,8 @@ public class JsonMessageStreamHandler {
                     return handleJsonMessageChunk(chunk, chatHistoryStringBuilder, seenToolIds, originalMessages, appId, loginUser.getId());
                 })
                 .filter(StrUtil::isNotEmpty) // 过滤空字符串
-                .doOnComplete(() -> {
-                    // 流式响应完成后，添加 AI 消息到对话历史（前端展示用）
+                .concatWith(Flux.defer(() -> {
+                    // 在原始流完成后执行校验并发出事件
                     String aiResponse = chatHistoryStringBuilder.toString();
                     if (StrUtil.isNotEmpty(aiResponse)) {
                         chatHistoryService.addChatMessage(appId, aiResponse, MESSAGE_TYPE_AI, loginUser.getId());
@@ -103,17 +132,52 @@ public class JsonMessageStreamHandler {
                         }
                     }
 
-                    // 异步构建 Vue 项目（不阻塞主流程）
-                    vueProjectBuilder.buildProjectAsyncByAppId(appId);
+                    // 执行校验（VUE_PROJECT）
+                    if (taskId != null) {
+                        ValidationContext validationContext = ValidationContext.builder()
+                                .taskId(taskId)
+                                .appId(appId)
+                                .userId(loginUser.getId())
+                                .codeGenType("VUE_PROJECT")
+                                .build();
 
-                    // 异步生成截图封面
-                    generateVueCoverAsync(appId);
-                })
+                        ValidationResult validationResult = validationOrchestrator.validateAndUpdateTask(validationContext);
+
+                        // 发出 validation_result 事件
+                        cn.hutool.json.JSONObject validationData = new cn.hutool.json.JSONObject();
+                        validationData.set("taskId", taskId);
+                        validationData.set("passed", validationResult.isPassed());
+                        validationData.set("summary", validationResult.getSummary());
+                        validationData.set("stage", validationResult.getStage());
+                        validationData.set("issues", validationResult.getIssues());
+                        if (validationResult.getBuildResult() != null) {
+                            validationData.set("buildResult", validationResult.getBuildResult());
+                        }
+
+                        // 校验通过才生成截图，否则直接结束
+                        if (validationResult.isPassed()) {
+                            generateVueCoverAsync(appId, taskId);
+                        } else {
+                            log.warn("VUE_PROJECT 校验失败，跳过截图生成: appId={}, taskId={}", appId, taskId);
+                        }
+
+                        return Flux.just("EVENT:validation_result:" + validationData.toString());
+                    } else {
+                        // 无 taskId 时直接构建和生成截图
+                        vueProjectBuilder.buildProjectAsyncByAppId(appId);
+                        generateVueCoverAsync(appId);
+                    }
+                    return Flux.empty();
+                }))
                 .doOnError(error -> {
                     // 如果AI回复失败，也要记录错误消息
                     String errorMessage = "AI回复失败: " + error.getMessage();
                     chatHistoryService.addChatMessage(appId, errorMessage, MESSAGE_TYPE_AI, loginUser.getId());
                     log.error("Vue 项目生成失败，appId: {}, error: {}", appId, error.getMessage());
+                    // 标记任务失败
+                    if (taskId != null) {
+                        generationTaskService.markFailed(taskId, errorMessage);
+                    }
                 });
     }
 
@@ -257,9 +321,19 @@ public class JsonMessageStreamHandler {
      * @param appId 应用ID
      */
     private void generateVueCoverAsync(long appId) {
+        generateVueCoverAsync(appId, null);
+    }
+
+    /**
+     * 异步生成 Vue 项目截图封面（带任务跟踪）
+     *
+     * @param appId  应用ID
+     * @param taskId 任务ID
+     */
+    private void generateVueCoverAsync(long appId, Long taskId) {
         // Vue 项目构建完成后截图，构建需要一些时间，所以延迟一段时间后截图
         // 使用异步方式，等待构建完成后截图
-        log.info("开始异步生成Vue项目截图封面: appId={}", appId);
+        log.info("开始异步生成Vue项目截图封面: appId={}, taskId={}", appId, taskId);
 
         // Vue 项目预览 URL（构建后的 dist 目录）
         String previewUrl = String.format("%s/vue_project_%s/",
@@ -268,6 +342,11 @@ public class JsonMessageStreamHandler {
         // 延迟执行截图（等待 Vue 项目构建完成）
         new java.util.concurrent.CompletableFuture<Void>().completeOnTimeout(null, 10, java.util.concurrent.TimeUnit.SECONDS)
                 .thenRun(() -> {
+                    // 更新任务阶段为 SCREENSHOT
+                    if (taskId != null) {
+                        generationTaskService.updateStage(taskId, GenerationTaskStageEnum.SCREENSHOT);
+                    }
+
                     screenshotService.generateAndUploadScreenshotAsync(previewUrl)
                             .thenAccept(coverUrl -> {
                                 if (StrUtil.isNotBlank(coverUrl)) {
@@ -277,9 +356,30 @@ public class JsonMessageStreamHandler {
                                     } else {
                                         log.warn("Vue项目封面更新失败: appId={}", appId);
                                     }
+                                    // 记录截图日志并标记任务成功
+                                    if (taskId != null) {
+                                        generationTaskService.appendLog(taskId, GenerationTaskStageEnum.SCREENSHOT,
+                                                GenerationTaskLogTypeEnum.INFO, "截图生成完成");
+                                        generationTaskService.markSuccess(taskId);
+                                    }
                                 } else {
                                     log.warn("Vue项目截图生成失败，无法更新封面: appId={}", appId);
+                                    // 截图失败不标记任务失败，只记日志，仍然标记成功
+                                    if (taskId != null) {
+                                        generationTaskService.appendLog(taskId, GenerationTaskStageEnum.SCREENSHOT,
+                                                GenerationTaskLogTypeEnum.ERROR, "截图生成失败");
+                                        generationTaskService.markSuccess(taskId);
+                                    }
                                 }
+                            })
+                            .exceptionally(e -> {
+                                log.error("Vue项目截图任务异常: appId={}", appId, e);
+                                if (taskId != null) {
+                                    generationTaskService.appendLog(taskId, GenerationTaskStageEnum.SCREENSHOT,
+                                            GenerationTaskLogTypeEnum.ERROR, "截图任务异常: " + e.getMessage());
+                                    generationTaskService.markSuccess(taskId);
+                                }
+                                return null;
                             });
                 });
     }

@@ -23,6 +23,12 @@ public class GenerationSessionManager {
     private final Map<String, Disposable> activeSessions = new ConcurrentHashMap<>();
 
     /**
+     * 存储会话与任务的映射
+     * key: sessionId, value: taskId
+     */
+    private final Map<String, Long> sessionToTaskId = new ConcurrentHashMap<>();
+
+    /**
      * 创建新的生成会话
      *
      * @return 会话ID
@@ -45,6 +51,49 @@ public class GenerationSessionManager {
     }
 
     /**
+     * 注册一个活跃的生成会话并关联任务
+     *
+     * @param sessionId  会话ID
+     * @param disposable 可取消的订阅
+     * @param taskId     任务ID
+     */
+    public void registerSession(String sessionId, Disposable disposable, Long taskId) {
+        if (sessionId != null && disposable != null) {
+            activeSessions.put(sessionId, disposable);
+            if (taskId != null) {
+                sessionToTaskId.put(sessionId, taskId);
+            }
+            log.info("注册生成会话: sessionId={}, taskId={}", sessionId, taskId);
+        }
+    }
+
+    /**
+     * 关联会话与任务
+     *
+     * @param sessionId 会话ID
+     * @param taskId    任务ID
+     */
+    public void registerSessionTask(String sessionId, Long taskId) {
+        if (sessionId != null && taskId != null) {
+            sessionToTaskId.put(sessionId, taskId);
+            log.info("关联会话与任务: sessionId={}, taskId={}", sessionId, taskId);
+        }
+    }
+
+    /**
+     * 根据会话ID获取任务ID
+     *
+     * @param sessionId 会话ID
+     * @return 任务ID
+     */
+    public Long getTaskIdBySessionId(String sessionId) {
+        if (sessionId == null) {
+            return null;
+        }
+        return sessionToTaskId.get(sessionId);
+    }
+
+    /**
      * 取消并移除一个生成会话
      *
      * @param sessionId 会话ID
@@ -55,6 +104,7 @@ public class GenerationSessionManager {
             return false;
         }
         Disposable disposable = activeSessions.remove(sessionId);
+        sessionToTaskId.remove(sessionId);
         if (disposable != null && !disposable.isDisposed()) {
             disposable.dispose();
             log.info("已取消生成会话: {}", sessionId);
@@ -71,6 +121,7 @@ public class GenerationSessionManager {
     public void removeSession(String sessionId) {
         if (sessionId != null) {
             activeSessions.remove(sessionId);
+            sessionToTaskId.remove(sessionId);
             log.debug("移除生成会话: {}", sessionId);
         }
     }

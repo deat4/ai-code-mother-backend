@@ -2,6 +2,9 @@ package com.zkf.aicodemother.core.builder;
 
 import cn.hutool.core.util.RuntimeUtil;
 import com.zkf.aicodemother.constant.AppConstant;
+import com.zkf.aicodemother.model.enums.GenerationTaskStageEnum;
+import com.zkf.aicodemother.model.enums.GenerationTaskLogTypeEnum;
+import com.zkf.aicodemother.service.GenerationTaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -51,13 +54,52 @@ public class VueProjectBuilder {
      * @param appId 应用ID
      */
     public void buildProjectAsyncByAppId(Long appId) {
+        buildProjectAsyncByAppId(appId, null, null);
+    }
+
+    /**
+     * 根据 appId 异步构建项目（带任务跟踪）
+     *
+     * @param appId     应用ID
+     * @param taskId    任务ID
+     * @param taskService 任务服务
+     */
+    public void buildProjectAsyncByAppId(Long appId, Long taskId, GenerationTaskService taskService) {
         if (appId == null) {
             log.warn("appId 为空，跳过构建");
             return;
         }
         // 使用与 FileWriteTool 一致的前缀：vue_project_
         String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
-        buildProjectAsync(projectPath);
+
+        // 在单独的虚拟线程中执行构建，避免阻塞主流程
+        Thread.ofVirtual().name("vue-builder-" + System.currentTimeMillis()).start(() -> {
+            try {
+                // 更新任务阶段为 BUILDING（如果还没有更新）
+                if (taskId != null && taskService != null) {
+                    taskService.appendLog(taskId, GenerationTaskStageEnum.BUILDING,
+                            GenerationTaskLogTypeEnum.INFO, "开始 npm install");
+                }
+
+                boolean success = buildProject(projectPath);
+
+                if (taskId != null && taskService != null) {
+                    if (success) {
+                        taskService.appendLog(taskId, GenerationTaskStageEnum.BUILDING,
+                                GenerationTaskLogTypeEnum.INFO, "项目构建完成，npm run build 成功");
+                    } else {
+                        taskService.markFailed(taskId, "项目构建失败");
+                    }
+                }
+
+                log.info("Vue 项目构建完成: appId={}, success={}", appId, success);
+            } catch (Exception e) {
+                log.error("异步构建 Vue 项目时发生异常: projectPath={}, error={}", projectPath, e.getMessage(), e);
+                if (taskId != null && taskService != null) {
+                    taskService.markFailed(taskId, "构建异常: " + e.getMessage());
+                }
+            }
+        });
     }
 
     /**

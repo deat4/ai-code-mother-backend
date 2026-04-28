@@ -24,7 +24,9 @@ import com.zkf.aicodemother.model.entity.User;
 import com.zkf.aicodemother.model.vo.AppVO;
 import com.zkf.aicodemother.service.AppService;
 import com.zkf.aicodemother.service.UserService;
+import com.zkf.aicodemother.service.GenerationTaskService;
 import com.zkf.aicodemother.core.GenerationSessionManager;
+import com.zkf.aicodemother.model.enums.GenerationTaskStageEnum;
 import lombok.extern.slf4j.Slf4j;
 
 import lombok.extern.slf4j.Slf4j;
@@ -69,6 +71,9 @@ public class AppController {
 
     @Resource
     private GenerationSessionManager sessionManager;
+
+    @Resource
+    private GenerationTaskService generationTaskService;
 
 
 
@@ -310,7 +315,7 @@ public class AppController {
      * @param appId   应用 ID
      * @param message 用户消息
      * @param request 请求对象
-     * @return 生成结果流（首个事件为 sessionId）
+     * @return 生成结果流（首个事件为 sessionId 和 task_created）
      */
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> chatToGenCode(
@@ -323,13 +328,29 @@ public class AppController {
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
 
-        // 创建会话 ID
+        // 查询应用信息以获取 codeGenType 和 scene
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        String codeGenType = app.getCodeGenType();
+        // 判断场景
+        com.zkf.aicodemother.model.enums.GenerationSceneEnum scene =
+                (app.getCurrentVersion() == null || app.getCurrentVersion() == 0)
+                        ? com.zkf.aicodemother.model.enums.GenerationSceneEnum.CREATION
+                        : com.zkf.aicodemother.model.enums.GenerationSceneEnum.MODIFICATION;
+
+        // 创建任务
+        Long taskId = generationTaskService.createTask(appId, loginUser.getId(), codeGenType, scene.getValue());
+
+        // 创建会话 ID 并关联任务
         String sessionId = sessionManager.createSession();
+        sessionManager.registerSessionTask(sessionId, taskId);
 
-        // 调用服务生成代码（流式）
-        Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
+        // 启动任务
+        generationTaskService.startTask(taskId, sessionId);
 
-        // 【修复点】：显式声明变量类型，帮助 Java 编译器正确推断泛型
+        // 调用服务生成代码（流式，传入 taskId）
+        Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser, taskId);
+
         Flux<ServerSentEvent<String>> sseFlux = Flux.push(sink -> {
             // 发送 sessionId 作为第一个事件
             Map<String, String> sessionWrapper = Map.of("sessionId", sessionId);
@@ -338,11 +359,38 @@ public class AppController {
                     .data(JSONUtil.toJsonStr(sessionWrapper))
                     .build());
 
+            // 发送 task_created 事件
+            Map<String, Object> taskWrapper = Map.of(
+                    "taskId", taskId,
+                    "status", "running",
+                    "stage", "init"
+            );
+            sink.next(ServerSentEvent.<String>builder()
+                    .event("task_created")
+                    .data(JSONUtil.toJsonStr(taskWrapper))
+                    .build());
+
             // 订阅内容流并正确路由到 sink
             Disposable subscription = contentFlux.subscribe(
                     chunk -> {
+                        // 检测是否是 stage_changed 事件
+                        if (chunk.startsWith("EVENT:stage_changed:")) {
+                            String jsonData = chunk.substring("EVENT:stage_changed:".length());
+                            sink.next(ServerSentEvent.<String>builder()
+                                    .event("stage_changed")
+                                    .data(jsonData)
+                                    .build());
+                        }
+                        // 检测是否是 validation_result 事件
+                        else if (chunk.startsWith("EVENT:validation_result:")) {
+                            String jsonData = chunk.substring("EVENT:validation_result:".length());
+                            sink.next(ServerSentEvent.<String>builder()
+                                    .event("validation_result")
+                                    .data(jsonData)
+                                    .build());
+                        }
                         // 检测是否是 tool_call 事件
-                        if (chunk.startsWith("EVENT:tool_call:")) {
+                        else if (chunk.startsWith("EVENT:tool_call:")) {
                             // 提取 JSON 数据
                             String jsonData = chunk.substring("EVENT:tool_call:".length());
                             sink.next(ServerSentEvent.<String>builder()
@@ -359,8 +407,9 @@ public class AppController {
                     },
                     error -> {
                         log.error("生成代码出错: {}", error.getMessage());
+                        generationTaskService.markFailed(taskId, error.getMessage());
                         sessionManager.removeSession(sessionId);
-                        sink.error(error); // 必须调用，否则流会挂起
+                        sink.error(error);
                     },
                     () -> {
                         // 发送结束事件
@@ -369,7 +418,7 @@ public class AppController {
                                 .data("")
                                 .build());
                         sessionManager.removeSession(sessionId);
-                        sink.complete(); // 必须调用，否则 HTTP 连接无法正常结束
+                        sink.complete();
                     }
             );
 
@@ -386,7 +435,6 @@ public class AppController {
 
         });
 
-        // 最后再链式调用 doOnCancel，此时类型绝对安全
         return sseFlux.doOnCancel(() -> sessionManager.cancelSession(sessionId));
     }
 

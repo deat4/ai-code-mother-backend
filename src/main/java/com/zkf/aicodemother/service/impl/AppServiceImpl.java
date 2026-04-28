@@ -27,7 +27,9 @@ import com.zkf.aicodemother.service.AppService;
 import com.zkf.aicodemother.service.UserService;
 import com.zkf.aicodemother.service.ChatHistoryService;
 import com.zkf.aicodemother.service.AppVersionService;
+import com.zkf.aicodemother.service.GenerationTaskService;
 import com.zkf.aicodemother.model.enums.MessageTypeEnum;
+import com.zkf.aicodemother.model.enums.GenerationTaskStageEnum;
 
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -80,6 +82,9 @@ public class AppServiceImpl implements AppService {
 
     @Resource
     private com.zkf.aicodemother.core.builder.VueProjectBuilder vueProjectBuilder;
+
+    @Resource
+    private GenerationTaskService generationTaskService;
 
     @Override
     public Page<App> page(Page<App> page, QueryWrapper queryWrapper) {
@@ -398,6 +403,12 @@ public class AppServiceImpl implements AppService {
 
     @Override
     public reactor.core.publisher.Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
+        // 调用带 taskId 参数的方法，taskId 为 null 表示不跟踪任务
+        return chatToGenCode(appId, message, loginUser, null);
+    }
+
+    @Override
+    public reactor.core.publisher.Flux<String> chatToGenCode(Long appId, String message, User loginUser, Long taskId) {
         // 1. 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
@@ -421,16 +432,26 @@ public class AppServiceImpl implements AppService {
             codeGenTypeEnum = com.zkf.aicodemother.model.enums.CodeGenTypeEnum.HTML;
             log.warn("应用 {} 的代码生成类型无效: {}，使用默认值 HTML", appId, codeGenTypeStr);
         }
+        // 使用 final 变量保存，供 lambda 使用
+        final com.zkf.aicodemother.model.enums.CodeGenTypeEnum finalCodeGenTypeEnum = codeGenTypeEnum;
 
         // 5. 保存用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, MessageTypeEnum.USER.getValue(), loginUser.getId());
 
-        // 6. 根据代码生成类型选择不同的处理流程
+        // 6. 更新任务阶段为 GENERATING
+        if (taskId != null) {
+            generationTaskService.updateStage(taskId, GenerationTaskStageEnum.GENERATING);
+            generationTaskService.appendLog(taskId, GenerationTaskStageEnum.GENERATING,
+                    com.zkf.aicodemother.model.enums.GenerationTaskLogTypeEnum.INFO,
+                    "开始生成代码");
+        }
+
+        // 7. 根据代码生成类型选择不同的处理流程
         reactor.core.publisher.Flux<String> contentFlux;
 
-        if (codeGenTypeEnum == com.zkf.aicodemother.model.enums.CodeGenTypeEnum.VUE_PROJECT) {
+        if (finalCodeGenTypeEnum == com.zkf.aicodemother.model.enums.CodeGenTypeEnum.VUE_PROJECT) {
             // VUE_PROJECT 类型使用专门的工具调用流程
-            contentFlux = handleVueProjectGeneration(appId, message, loginUser, app);
+            contentFlux = handleVueProjectGeneration(appId, message, loginUser, app, taskId);
         } else {
             // HTML/MULTI_FILE 类型使用传统流程
             // 需要将 model.enums.CodeGenTypeEnum 转换为 core.CodeGenTypeEnum
@@ -440,10 +461,10 @@ public class AppServiceImpl implements AppService {
                 coreCodeGenTypeEnum = com.zkf.aicodemother.core.CodeGenTypeEnum.HTML;
             }
             contentFlux = aiCodeGeneratorFacade
-                    .generateAndSaveCodeStream(message, coreCodeGenTypeEnum, appId, loginUser.getId());
+                    .generateAndSaveCodeStream(message, coreCodeGenTypeEnum, appId, loginUser.getId(), taskId);
         }
 
-        // 7. 收集 AI 响应内容并在完成后记录到对话历史
+        // 8. 收集 AI 响应内容并在完成后记录到对话历史
         StringBuilder aiResponseBuilder = new StringBuilder();
         return contentFlux
                 .map(chunk -> {
@@ -457,12 +478,20 @@ public class AppServiceImpl implements AppService {
                     if (StrUtil.isNotBlank(aiResponse)) {
                         chatHistoryService.addChatMessage(appId, aiResponse, MessageTypeEnum.AI.getValue(), loginUser.getId());
                     }
+                    // HTML/MULTI_FILE 类型在此标记任务成功（VUE_PROJECT 在 JsonMessageStreamHandler 中处理）
+                    if (taskId != null && finalCodeGenTypeEnum != com.zkf.aicodemother.model.enums.CodeGenTypeEnum.VUE_PROJECT) {
+                        generationTaskService.markSuccess(taskId);
+                    }
                 })
                 .doOnError(error -> {
                     // 如果 AI 回复失败，也要记录错误消息
                     String errorMessage = "AI 回复失败: " + error.getMessage();
                     chatHistoryService.addChatMessage(appId, errorMessage, MessageTypeEnum.AI.getValue(), loginUser.getId());
                     log.error("AI 生成代码失败: appId={}, error={}", appId, error.getMessage());
+                    // 标记任务失败
+                    if (taskId != null) {
+                        generationTaskService.markFailed(taskId, errorMessage);
+                    }
                 });
     }
 
@@ -474,9 +503,10 @@ public class AppServiceImpl implements AppService {
      * @param message   用户消息
      * @param loginUser 登录用户
      * @param app       应用实体
+     * @param taskId    任务 ID
      * @return 流式响应
      */
-    private reactor.core.publisher.Flux<String> handleVueProjectGeneration(Long appId, String message, User loginUser, App app) {
+    private reactor.core.publisher.Flux<String> handleVueProjectGeneration(Long appId, String message, User loginUser, App app, Long taskId) {
         // 判断是创建场景还是修改场景
         // 如果 currentVersion 为空或为 0，则是创建场景；否则是修改场景
         com.zkf.aicodemother.model.enums.GenerationSceneEnum scene =
@@ -484,7 +514,7 @@ public class AppServiceImpl implements AppService {
                         ? com.zkf.aicodemother.model.enums.GenerationSceneEnum.CREATION
                         : com.zkf.aicodemother.model.enums.GenerationSceneEnum.MODIFICATION;
 
-        log.info("VUE_PROJECT 生成: appId={}, scene={}", appId, scene.getValue());
+        log.info("VUE_PROJECT 生成: appId={}, scene={}, taskId={}", appId, scene.getValue(), taskId);
 
         // 根据场景获取对应的 AI 服务
         Object aiService = aiServiceFactory.getVueProjectService(appId, scene);
@@ -505,13 +535,14 @@ public class AppServiceImpl implements AppService {
         reactor.core.publisher.Flux<String> originFlux =
                 com.zkf.aicodemother.utils.TokenStreamConverter.toFlux(tokenStream);
 
-        // 使用 StreamHandlerExecutor 处理 Flux<String>
+        // 使用 StreamHandlerExecutor 处理 Flux<String>，传入 taskId
         return streamHandlerExecutor.doExecute(
                 originFlux,
                 chatHistoryService,
                 appId,
                 loginUser,
-                com.zkf.aicodemother.model.enums.CodeGenTypeEnum.VUE_PROJECT
+                com.zkf.aicodemother.model.enums.CodeGenTypeEnum.VUE_PROJECT,
+                taskId
         );
     }
 
@@ -624,7 +655,19 @@ public class AppServiceImpl implements AppService {
 
     @Override
     public boolean stopGeneration(String sessionId) {
-        return sessionManager.cancelSession(sessionId);
+        // 1. 获取关联的 taskId
+        Long taskId = sessionManager.getTaskIdBySessionId(sessionId);
+
+        // 2. 中断 SSE
+        boolean canceled = sessionManager.cancelSession(sessionId);
+
+        // 3. 标记任务状态
+        if (canceled && taskId != null) {
+            generationTaskService.markCanceled(taskId);
+            log.info("已取消生成会话并标记任务状态: sessionId={}, taskId={}", sessionId, taskId);
+        }
+
+        return canceled;
     }
 
     @Override
