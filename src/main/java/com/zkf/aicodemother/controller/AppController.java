@@ -359,9 +359,9 @@ public class AppController {
                     .data(JSONUtil.toJsonStr(sessionWrapper))
                     .build());
 
-            // 发送 task_created 事件
+            // 发送 task_created 事件（taskId 转为字符串，避免前端 JS 精度丢失）
             Map<String, Object> taskWrapper = Map.of(
-                    "taskId", taskId,
+                    "taskId", String.valueOf(taskId),
                     "status", "running",
                     "stage", "init"
             );

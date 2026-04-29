@@ -103,17 +103,14 @@ public class HtmlValidationService implements ValidationService {
         if (MARKDOWN_BLOCK_PATTERN.matcher(content).find()) {
             result.addIssue(ValidationIssue.warn("content", "MARKDOWN_REMAINED",
                     "文件中残留 markdown 代码块标记，建议清理"));
-            result.setSummary("文件中残留 markdown 代码块");
-            // 不标记为失败，只是警告
+            // 不标记为失败，只是警告，最终摘要会在结尾统一设置
         }
 
         // 6. 检查是否存在明显占位符
         if (PLACEHOLDER_PATTERN.matcher(content).find()) {
             result.addIssue(ValidationIssue.warn("content", "PLACEHOLDER_FOUND",
                     "文件中存在占位符文本，建议替换为实际内容"));
-            if (result.getSummary() == null) {
-                result.setSummary("文件中存在占位符");
-            }
+            // 不标记为失败，只是警告
         }
 
         // 7. 检查必要 HTML 标签是否存在
@@ -133,15 +130,20 @@ public class HtmlValidationService implements ValidationService {
             return result;
         }
 
-        // 设置成功摘要
-        if (result.isPassed()) {
-            result.setSummary("HTML 校验通过");
+        // 设置成功摘要（统一语义：如果有警告，摘要要体现）
+        if (result.isPassedByErrors()) {
+            int warningCount = result.getWarningCount();
+            if (warningCount > 0) {
+                result.setSummary(String.format("HTML 校验通过，存在 %d 个警告", warningCount));
+            } else {
+                result.setSummary("HTML 校验通过");
+            }
             result.getExtra().put("fileSize", content.length());
             result.getExtra().put("filePath", indexFile.getAbsolutePath());
         }
 
-        log.info("HTML 校验完成: appId={}, passed={}, issues={}",
-                context.getAppId(), result.isPassed(), result.getIssues().size());
+        log.info("HTML 校验完成: appId={}, passed={}, errorCount={}, warningCount={}",
+                context.getAppId(), result.isPassedByErrors(), result.getErrorCount(), result.getWarningCount());
 
         return result;
     }

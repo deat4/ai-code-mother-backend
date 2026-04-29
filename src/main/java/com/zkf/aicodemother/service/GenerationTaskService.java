@@ -113,6 +113,17 @@ public interface GenerationTaskService {
     void updateValidationSummary(Long taskId, String summary, boolean passed);
 
     /**
+     * 更新校验摘要（带问题数量和警告数量）
+     *
+     * @param taskId      任务 ID
+     * @param summary     校验摘要
+     * @param passed      是否通过
+     * @param issueCount  问题数量（ERROR）
+     * @param warningCount 警告数量（WARN）
+     */
+    void updateValidationSummary(Long taskId, String summary, boolean passed, int issueCount, int warningCount);
+
+    /**
      * 保存校验结果
      *
      * @param taskId 任务 ID

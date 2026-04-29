@@ -68,26 +68,33 @@ public class ValidationResult {
     }
 
     /**
-     * 获取错误数量
+     * 获取错误数量（用于判断 passed 和 issueCount）
      */
     public int getErrorCount() {
         if (issues == null) {
             return 0;
         }
         return (int) issues.stream()
-                .filter(i -> "error".equals(i.getSeverity()))
+                .filter(i -> "error".equalsIgnoreCase(i.getSeverity()))
                 .count();
     }
 
     /**
-     * 获取警告数量
+     * 获取警告数量（用于 warningCount）
      */
     public int getWarningCount() {
         if (issues == null) {
             return 0;
         }
         return (int) issues.stream()
-                .filter(i -> "warn".equals(i.getSeverity()))
+                .filter(i -> "warn".equalsIgnoreCase(i.getSeverity()))
                 .count();
+    }
+
+    /**
+     * 判断是否通过（只看是否有 ERROR）
+     */
+    public boolean isPassedByErrors() {
+        return getErrorCount() == 0;
     }
 }

@@ -122,11 +122,17 @@ public class VueProjectValidationService implements ValidationService {
             return result;
         }
 
-        if (result.isPassed()) {
-            result.setSummary(result.getIssues().isEmpty() ? "VUE_PROJECT 结构校验通过" : "VUE_PROJECT 结构校验通过，存在 " + result.getWarningCount() + " 个警告");
+        if (result.isPassedByErrors()) {
+            int warningCount = result.getWarningCount();
+            if (warningCount > 0) {
+                result.setSummary(String.format("VUE_PROJECT 结构校验通过，存在 %d 个警告", warningCount));
+            } else {
+                result.setSummary("VUE_PROJECT 结构校验通过");
+            }
         }
 
-        log.info("VUE_PROJECT 结构校验完成: appId={}, passed={}, issues={}", context.getAppId(), result.isPassed(), result.getIssues().size());
+        log.info("VUE_PROJECT 结构校验完成: appId={}, passed={}, errorCount={}, warningCount={}",
+                context.getAppId(), result.isPassedByErrors(), result.getErrorCount(), result.getWarningCount());
         return result;
     }
 

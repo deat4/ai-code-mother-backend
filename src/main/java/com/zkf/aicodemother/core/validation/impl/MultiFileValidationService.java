@@ -151,20 +151,21 @@ public class MultiFileValidationService implements ValidationService {
                     "HTML 中存在异常的资源引用路径"));
         }
 
-        // 设置结果摘要
-        if (result.isPassed()) {
-            if (result.getIssues().isEmpty()) {
-                result.setSummary("MULTI_FILE 校验通过");
+        // 设置结果摘要（统一语义：passed 只看 ERROR，警告体现在摘要中）
+        if (result.isPassedByErrors()) {
+            int warningCount = result.getWarningCount();
+            if (warningCount > 0) {
+                result.setSummary(String.format("MULTI_FILE 校验通过，存在 %d 个警告", warningCount));
             } else {
-                result.setSummary("MULTI_FILE 校验通过，存在 " + result.getWarningCount() + " 个警告");
+                result.setSummary("MULTI_FILE 校验通过");
             }
             result.getExtra().put("fileCount", validFiles.size());
             result.getExtra().put("totalSize", totalSize);
             result.getExtra().put("projectPath", projectPath);
         }
 
-        log.info("MULTI_FILE 校验完成: appId={}, passed={}, issues={}",
-                context.getAppId(), result.isPassed(), result.getIssues().size());
+        log.info("MULTI_FILE 校验完成: appId={}, passed={}, errorCount={}, warningCount={}",
+                context.getAppId(), result.isPassedByErrors(), result.getErrorCount(), result.getWarningCount());
 
         return result;
     }

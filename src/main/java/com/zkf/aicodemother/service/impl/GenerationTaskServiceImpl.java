@@ -242,6 +242,11 @@ public class GenerationTaskServiceImpl implements GenerationTaskService {
 
     @Override
     public void updateValidationSummary(Long taskId, String summary, boolean passed) {
+        updateValidationSummary(taskId, summary, passed, 0, 0);
+    }
+
+    @Override
+    public void updateValidationSummary(Long taskId, String summary, boolean passed, int issueCount, int warningCount) {
         ThrowUtils.throwIf(taskId == null || taskId <= 0, ErrorCode.PARAMS_ERROR, "任务ID无效");
 
         GenerationTask task = generationTaskMapper.selectOneById(taskId);
@@ -249,10 +254,13 @@ public class GenerationTaskServiceImpl implements GenerationTaskService {
 
         task.setValidationSummary(summary);
         task.setValidationPassed(passed ? 1 : 0);
+        task.setIssueCount(issueCount);
+        task.setWarningCount(warningCount);
         task.setUpdateTime(LocalDateTime.now());
 
         generationTaskMapper.update(task);
-        log.info("更新校验摘要: taskId={}, summary={}, passed={}", taskId, summary, passed);
+        log.info("更新校验摘要: taskId={}, summary={}, passed={}, issueCount={}, warningCount={}",
+                taskId, summary, passed, issueCount, warningCount);
     }
 
     @Override

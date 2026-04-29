@@ -143,12 +143,14 @@ public class JsonMessageStreamHandler {
 
                         ValidationResult validationResult = validationOrchestrator.validateAndUpdateTask(validationContext);
 
-                        // 发出 validation_result 事件
+                        // 发出 validation_result 事件（taskId 转为字符串，避免前端 JS 精度丢失）
                         cn.hutool.json.JSONObject validationData = new cn.hutool.json.JSONObject();
-                        validationData.set("taskId", taskId);
-                        validationData.set("passed", validationResult.isPassed());
+                        validationData.set("taskId", String.valueOf(taskId));
+                        validationData.set("passed", validationResult.isPassedByErrors());
                         validationData.set("summary", validationResult.getSummary());
                         validationData.set("stage", validationResult.getStage());
+                        validationData.set("issueCount", validationResult.getErrorCount());
+                        validationData.set("warningCount", validationResult.getWarningCount());
                         validationData.set("issues", validationResult.getIssues());
                         if (validationResult.getBuildResult() != null) {
                             validationData.set("buildResult", validationResult.getBuildResult());

@@ -1,5 +1,7 @@
 package com.zkf.aicodemother.model.vo;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 import java.io.Serial;
@@ -16,13 +18,15 @@ public class GenerationTaskLogVO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 日志 ID
+     * 日志 ID（序列化为字符串，避免前端 JS 精度丢失）
      */
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     /**
-     * 任务 ID
+     * 任务 ID（序列化为字符串，避免前端 JS 精度丢失）
      */
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long taskId;
 
     /**

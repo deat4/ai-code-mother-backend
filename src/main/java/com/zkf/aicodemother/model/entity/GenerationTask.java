@@ -112,6 +112,18 @@ public class GenerationTask implements Serializable {
     private Integer validationPassed;
 
     /**
+     * 问题数量（仅统计 ERROR）
+     */
+    @Column("issue_count")
+    private Integer issueCount;
+
+    /**
+     * 警告数量（仅统计 WARN）
+     */
+    @Column("warning_count")
+    private Integer warningCount;
+
+    /**
      * 创建时间
      */
     @Column("create_time")

@@ -148,14 +148,19 @@ public class GenerationValidationOrchestratorImpl implements GenerationValidatio
 
     /**
      * 根据校验结果更新任务状态
+     * 规则：passed 只看 ERROR，issueCount 统计 ERROR，warningCount 统计 WARN
      */
     private void updateTaskByValidationResult(Long taskId, ValidationResult result) {
-        if (result.isPassed()) {
-            generationTaskService.updateValidationSummary(taskId, result.getSummary(), true);
+        int issueCount = result.getErrorCount();    // 只统计 ERROR
+        int warningCount = result.getWarningCount(); // 只统计 WARN
+
+        if (result.isPassedByErrors()) {
+            generationTaskService.updateValidationSummary(taskId, result.getSummary(), true, issueCount, warningCount);
             generationTaskService.appendLog(taskId, GenerationTaskStageEnum.DONE,
-                    GenerationTaskLogTypeEnum.STAGE_CHANGE, "校验通过，任务完成");
+                    GenerationTaskLogTypeEnum.STAGE_CHANGE,
+                    String.format("校验通过（ERROR=%d, WARN=%d）", issueCount, warningCount));
         } else {
-            generationTaskService.updateValidationSummary(taskId, result.getSummary(), false);
+            generationTaskService.updateValidationSummary(taskId, result.getSummary(), false, issueCount, warningCount);
             generationTaskService.markFailed(taskId, result.getSummary());
         }
     }
