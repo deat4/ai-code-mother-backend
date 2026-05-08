@@ -1,0 +1,213 @@
+event:session
+data:{"sessionId":"eedd35acf74c4f94"}
+
+event:task_created
+data:{"taskId":"409688241809096704","stage":"init","status":"running"}
+
+data:{"d":"```"}
+
+data:{"d":"json"}
+
+data:{"d":"\n"}
+
+data:{"d":"{\n"}
+
+data:{"d":" "}
+
+data:{"d":" \""}
+
+data:{"d":"html"}
+
+data:{"d":"\":"}
+
+data:{"d":" \"<"}
+
+data:{"d":"!"}
+
+data:{"d":"DOCTYPE"}
+
+data:{"d":" html"}
+
+data:{"d":">\\"}
+
+data:{"d":"n"}
+
+data:{"d":"<html"}
+
+data:{"d":" lang"}
+
+data:{"d":"=\\\""}
+
+data:{"d":"zh"}
+
+data:{"d":"-C"}
+
+data:{"d":"N"}
+
+data:{"d":"\\"}
+
+data:{"d":"\">"}
+
+data:{"d":"\\"}
+
+data:{"d":"n"}
+
+data:{"d":"<head"}
+
+data:{"d":">\\"}
+
+data:{"d":"n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"meta"}
+
+data:{"d":" charset"}
+
+data:{"d":"=\\\""}
+
+data:{"d":"UTF"}
+
+data:{"d":"-"}
+
+data:{"d":"8"}
+
+data:{"d":"\\"}
+
+data:{"d":"\">"}
+
+data:{"d":"\\"}
+
+data:{"d":"n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"meta"}
+
+data:{"d":" name"}
+
+data:{"d":"=\\\""}
+
+data:{"d":"viewport"}
+
+data:{"d":"\\\""}
+
+data:{"d":" content"}
+
+data:{"d":"=\\\""}
+
+data:{"d":"width"}
+
+data:{"d":"=device"}
+
+data:{"d":"-width"}
+
+data:{"d":","}
+
+data:{"d":" initial"}
+
+data:{"d":"-scale"}
+
+data:{"d":"="}
+
+data:{"d":"1"}
+
+data:{"d":"."}
+
+data:{"d":"0"}
+
+data:{"d":"\\"}
+
+data:{"d":"\">"}
+
+data:{"d":"\\"}
+
+data:{"d":"n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"title"}
+
+data:{"d":">"}
+
+data:{"d":"标"}
+
+data:{"d":"願"}
+
+data:{"d":" -"}
+
+data:{"d":" "}
+
+data:{"d":"品牌"}
+
+data:{"d":"愿景"}
+
+data:{"d":"设计"}
+
+data:{"d":"</"}
+
+data:{"d":"title"}
+
+data:{"d":">\\"}
+
+data:{"d":"n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"style"}
+
+data:{"d":">\\"}
+
+data:{"d":"n"}
+
+data:{"d":"       "}
+
+data:{"d":" /*"}
+
+data:{"d":" ="}
+
+data:{"d":"===="}
+
+data:{"d":" "}
+
+data:{"d":"全局"}
+
+data:{"d":"重置"}
+
+data:{"d":" &"}
+
+data:{"d":" "}
+
+data:{"d":"基础"}
+
+data:{"d":" ="}
+
+data:{"d":"===="}
+
+data:{"d":" */"}
+
+data:{"d":"\\"}
+
+data:{"d":"n"}
+
+data:{"d":"       "}
+
+data:{"d":" *"}
+
+data:{"d":" {\\"}
+
+data:{"d":"n"}
+
+data:{"d":"           "}
+
+data:{"d":" margin"}
+
+data:{"d"

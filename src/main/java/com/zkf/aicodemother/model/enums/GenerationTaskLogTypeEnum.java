@@ -12,7 +12,8 @@ public enum GenerationTaskLogTypeEnum {
     ERROR("错误", "error"),
     STAGE_CHANGE("阶段变更", "stage_change"),
     VALIDATION("校验日志", "validation"),
-    BUILD("构建日志", "build");
+    BUILD("构建日志", "build"),
+    REPAIR("修复日志", "repair");
 
     private final String text;
 

@@ -132,4 +132,30 @@ public interface GenerationTaskService {
      * @param issuesJson 问题列表 JSON
      */
     void saveValidationResult(Long taskId, String summary, boolean passed, String issuesJson);
+
+    /**
+     * 更新修复信息
+     *
+     * @param taskId       任务 ID
+     * @param repairCount  当前修复轮次
+     * @param maxRepairCount 最大修复轮次
+     * @param summary      修复摘要
+     */
+    void updateRepairInfo(Long taskId, int repairCount, int maxRepairCount, String summary);
+
+    /**
+     * 增加修复轮次
+     *
+     * @param taskId 任务 ID
+     * @return 更新后的修复轮次
+     */
+    int incrementRepairCount(Long taskId);
+
+    /**
+     * 初始化修复配额
+     *
+     * @param taskId       任务 ID
+     * @param maxRepairCount 最大修复轮次
+     */
+    void initRepairQuota(Long taskId, int maxRepairCount);
 }

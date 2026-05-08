@@ -12,6 +12,7 @@ public enum GenerationTaskStageEnum {
     GENERATING("代码生成", "generating"),
     VALIDATING("自动校验", "validating"),
     BUILDING("项目构建", "building"),
+    REPAIRING("自动修复", "repairing"),
     SCREENSHOT("截图生成", "screenshot"),
     DONE("完成", "done");
 

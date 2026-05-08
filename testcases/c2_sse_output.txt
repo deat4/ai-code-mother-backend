@@ -1,0 +1,792 @@
+event:session
+data:{"sessionId":"c2c210e9ffaf44e1"}
+
+event:task_created
+data:{"taskId":"409629943453917184","stage":"init","status":"running"}
+
+data:{"d":"---"}
+
+data:{"d":"文件名"}
+
+data:{"d":":"}
+
+data:{"d":" index"}
+
+data:{"d":".html"}
+
+data:{"d":"---\n"}
+
+data:{"d":"<!"}
+
+data:{"d":"DOCTYPE"}
+
+data:{"d":" html"}
+
+data:{"d":">\n"}
+
+data:{"d":"<html"}
+
+data:{"d":" lang"}
+
+data:{"d":"=\""}
+
+data:{"d":"zh"}
+
+data:{"d":"-C"}
+
+data:{"d":"N"}
+
+data:{"d":"\">\n"}
+
+data:{"d":"<head"}
+
+data:{"d":">\n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"meta"}
+
+data:{"d":" charset"}
+
+data:{"d":"=\""}
+
+data:{"d":"UTF"}
+
+data:{"d":"-"}
+
+data:{"d":"8"}
+
+data:{"d":"\">\n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"title"}
+
+data:{"d":">"}
+
+data:{"d":"样式"}
+
+data:{"d":"颜色"}
+
+data:{"d":"修改"}
+
+data:{"d":"</"}
+
+data:{"d":"title"}
+
+data:{"d":">\n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"link"}
+
+data:{"d":" rel"}
+
+data:{"d":"=\""}
+
+data:{"d":"stylesheet"}
+
+data:{"d":"\""}
+
+data:{"d":" href"}
+
+data:{"d":"=\""}
+
+data:{"d":"style"}
+
+data:{"d":".css"}
+
+data:{"d":"\">\n"}
+
+data:{"d":"</"}
+
+data:{"d":"head"}
+
+data:{"d":">\n"}
+
+data:{"d":"<body"}
+
+data:{"d":">\n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"div"}
+
+data:{"d":" id"}
+
+data:{"d":"=\""}
+
+data:{"d":"app"}
+
+data:{"d":"\">\n"}
+
+data:{"d":"       "}
+
+data:{"d":" <"}
+
+data:{"d":"h"}
+
+data:{"d":"1"}
+
+data:{"d":">"}
+
+data:{"d":"样式"}
+
+data:{"d":"颜色"}
+
+data:{"d":"修改"}
+
+data:{"d":"</"}
+
+data:{"d":"h"}
+
+data:{"d":"1"}
+
+data:{"d":">\n"}
+
+data:{"d":"       "}
+
+data:{"d":" <"}
+
+data:{"d":"p"}
+
+data:{"d":" id"}
+
+data:{"d":"=\""}
+
+data:{"d":"text"}
+
+data:{"d":"\">"}
+
+data:{"d":"这是一"}
+
+data:{"d":"段"}
+
+data:{"d":"文字"}
+
+data:{"d":"</"}
+
+data:{"d":"p"}
+
+data:{"d":">\n"}
+
+data:{"d":"       "}
+
+data:{"d":" <"}
+
+data:{"d":"button"}
+
+data:{"d":" id"}
+
+data:{"d":"=\""}
+
+data:{"d":"change"}
+
+data:{"d":"Btn"}
+
+data:{"d":"\">"}
+
+data:{"d":"修改"}
+
+data:{"d":"颜色"}
+
+data:{"d":"</"}
+
+data:{"d":"button"}
+
+data:{"d":">\n"}
+
+data:{"d":"   "}
+
+data:{"d":" </"}
+
+data:{"d":"div"}
+
+data:{"d":">\n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"script"}
+
+data:{"d":" src"}
+
+data:{"d":"=\""}
+
+data:{"d":"script"}
+
+data:{"d":".js"}
+
+data:{"d":"\"></"}
+
+data:{"d":"script"}
+
+data:{"d":">\n"}
+
+data:{"d":"</"}
+
+data:{"d":"body"}
+
+data:{"d":">\n"}
+
+data:{"d":"</"}
+
+data:{"d":"html"}
+
+data:{"d":">\n\n"}
+
+data:{"d":"---"}
+
+data:{"d":"文件名"}
+
+data:{"d":":"}
+
+data:{"d":" style"}
+
+data:{"d":".css"}
+
+data:{"d":"---\n"}
+
+data:{"d":"body"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" font"}
+
+data:{"d":"-family"}
+
+data:{"d":":"}
+
+data:{"d":" A"}
+
+data:{"d":"rial"}
+
+data:{"d":","}
+
+data:{"d":" sans"}
+
+data:{"d":"-serif"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" display"}
+
+data:{"d":":"}
+
+data:{"d":" flex"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" justify"}
+
+data:{"d":"-content"}
+
+data:{"d":":"}
+
+data:{"d":" center"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" align"}
+
+data:{"d":"-items"}
+
+data:{"d":":"}
+
+data:{"d":" center"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" height"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"100"}
+
+data:{"d":"vh"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" margin"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"0"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" background"}
+
+data:{"d":"-color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"f"}
+
+data:{"d":"0"}
+
+data:{"d":"f"}
+
+data:{"d":"0"}
+
+data:{"d":"f"}
+
+data:{"d":"0"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":"#"}
+
+data:{"d":"app"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" text"}
+
+data:{"d":"-align"}
+
+data:{"d":":"}
+
+data:{"d":" center"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" background"}
+
+data:{"d":":"}
+
+data:{"d":" white"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" padding"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"40"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" border"}
+
+data:{"d":"-radius"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"10"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" box"}
+
+data:{"d":"-shadow"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"0"}
+
+data:{"d":" "}
+
+data:{"d":"2"}
+
+data:{"d":"px"}
+
+data:{"d":" "}
+
+data:{"d":"10"}
+
+data:{"d":"px"}
+
+data:{"d":" rgba"}
+
+data:{"d":"("}
+
+data:{"d":"0"}
+
+data:{"d":","}
+
+data:{"d":"0"}
+
+data:{"d":","}
+
+data:{"d":"0"}
+
+data:{"d":","}
+
+data:{"d":"0"}
+
+data:{"d":"."}
+
+data:{"d":"1"}
+
+data:{"d":");\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":"h"}
+
+data:{"d":"1"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"333"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" margin"}
+
+data:{"d":"-bottom"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"20"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":"#"}
+
+data:{"d":"text"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"666"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" font"}
+
+data:{"d":"-size"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"18"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" margin"}
+
+data:{"d":"-bottom"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"20"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":"#"}
+
+data:{"d":"change"}
+
+data:{"d":"Btn"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" background"}
+
+data:{"d":"-color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"007"}
+
+data:{"d":"b"}
+
+data:{"d":"ff"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" color"}
+
+data:{"d":":"}
+
+data:{"d":" white"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" border"}
+
+data:{"d":":"}
+
+data:{"d":" none"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" padding"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"10"}
+
+data:{"d":"px"}
+
+data:{"d":" "}
+
+data:{"d":"20"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" font"}
+
+data:{"d":"-size"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"16"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" border"}
+
+data:{"d":"-radius"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"5"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" cursor"}
+
+data:{"d":":"}
+
+data:{"d":" pointer"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":"#"}
+
+data:{"d":"change"}
+
+data:{"d":"Btn"}
+
+data:{"d":":hover"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" background"}
+
+data:{"d":"-color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"005"}
+
+data:{"d":"6"}
+
+data:{"d":"b"}
+
+data:{"d":"3"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":"---"}
+
+data:{"d":"文件名"}
+
+data:{"d":":"}
+
+data:{"d":" script"}
+
+data:{"d":".js"}
+
+data:{"d":"---\n"}
+
+data:{"d":"document"}
+
+data:{"d":".getElementById"}
+
+data:{"d":"('"}
+
+data:{"d":"change"}
+
+data:{"d":"Btn"}
+
+data:{"d":"')."}
+
+data:{"d":"add"}
+
+data:{"d":"EventListener"}
+
+data:{"d":"('"}
+
+data:{"d":"click"}
+
+data:{"d":"',"}
+
+data:{"d":" function"}
+
+data:{"d":"()"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" const"}
+
+data:{"d":" text"}
+
+data:{"d":" ="}
+
+data:{"d":" document"}
+
+data:{"d":".getElementById"}
+
+data:{"d":"('"}
+
+data:{"d":"text"}
+
+data:{"d":"');\n"}
+
+data:{"d":"   "}
+
+data:{"d":" text"}
+
+data:{"d":".style"}
+
+data:{"d":".color"}
+
+data:{"d":" ="}
+
+data:{"d":" '#"}
+
+data:{"d":"ff"}
+
+data:{"d":"000"}
+
+data:{"d":"0"}
+
+data:{"d":"';\n"}
+
+data:{"d":"});"}
+
+event:validation_result
+data:{"taskId":"409629943453917184","passed":true,"summary":"MULTI_FILE 校验通过","stage":"VALIDATING","issueCount":0,"warningCount":0,"issues":[]}
+
+event:done
+data:
+

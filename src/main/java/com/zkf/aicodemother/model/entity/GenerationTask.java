@@ -124,6 +124,24 @@ public class GenerationTask implements Serializable {
     private Integer warningCount;
 
     /**
+     * 当前修复轮次
+     */
+    @Column("repair_count")
+    private Integer repairCount;
+
+    /**
+     * 最大修复轮次
+     */
+    @Column("max_repair_count")
+    private Integer maxRepairCount;
+
+    /**
+     * 修复摘要
+     */
+    @Column("repair_summary")
+    private String repairSummary;
+
+    /**
      * 创建时间
      */
     @Column("create_time")

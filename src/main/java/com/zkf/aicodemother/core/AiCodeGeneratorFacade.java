@@ -15,14 +15,17 @@ import com.zkf.aicodemother.model.enums.GenerationTaskStageEnum;
 import com.zkf.aicodemother.model.enums.GenerationTaskLogTypeEnum;
 import com.zkf.aicodemother.service.GenerationTaskService;
 import com.zkf.aicodemother.service.GenerationValidationOrchestrator;
+import com.zkf.aicodemother.service.GenerationRepairOrchestrator;
 import com.zkf.aicodemother.core.validation.ValidationContext;
 import com.zkf.aicodemother.core.validation.ValidationResult;
+import com.zkf.aicodemother.core.repair.RepairResult;
 
 import com.zkf.aicodemother.service.AppService;
 import com.zkf.aicodemother.service.AppVersionService;
 import com.zkf.aicodemother.service.impl.ScreenshotServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -56,6 +59,10 @@ public class AiCodeGeneratorFacade {
 
     @Resource
     private GenerationValidationOrchestrator validationOrchestrator;
+
+    @Resource
+    @Lazy
+    private GenerationRepairOrchestrator repairOrchestrator;
 
     /**
      * 统一入口：根据类型生成并保存代码
@@ -302,11 +309,59 @@ public class AiCodeGeneratorFacade {
                                 validationData.set("buildResult", validationResult.getBuildResult());
                             }
 
-                            // 校验通过才生成截图，否则直接结束
+                            // 校验通过才生成截图，否则检查是否需要自动修复
                             if (validationResult.isPassed()) {
                                 generateCoverAsync(appId, codeGenType, taskId);
                             } else {
-                                log.warn("校验失败，跳过截图生成: appId={}, taskId={}", appId, taskId);
+                                log.warn("校验失败: appId={}, taskId={}, errorCount={}", appId, taskId, validationResult.getErrorCount());
+
+                                // 检查是否需要自动修复
+                                if (repairOrchestrator.shouldAutoRepair(taskId, validationResult)) {
+                                    // 发出 repair_started 事件
+                                    cn.hutool.json.JSONObject repairStartedData = new cn.hutool.json.JSONObject();
+                                    repairStartedData.set("taskId", String.valueOf(taskId));
+                                    repairStartedData.set("repairRound", 1);
+                                    repairStartedData.set("maxRepairRounds", 1);
+                                    repairStartedData.set("summary", "检测到可修复错误，开始自动修复");
+
+                                    // 执行自动修复
+                                    RepairResult repairResult = repairOrchestrator.orchestrateRepair(validationContext, validationResult);
+
+                                    // 发出 repair_result 事件
+                                    cn.hutool.json.JSONObject repairResultData = new cn.hutool.json.JSONObject();
+                                    repairResultData.set("taskId", String.valueOf(taskId));
+                                    repairResultData.set("repairRound", repairResult.getRepairRound());
+                                    repairResultData.set("attempted", repairResult.isAttempted());
+                                    repairResultData.set("success", repairResult.isSuccess());
+                                    repairResultData.set("summary", repairResult.getSummary());
+                                    if (repairResult.getSkippedReason() != null) {
+                                        repairResultData.set("skippedReason", repairResult.getSkippedReason());
+                                    }
+                                    if (repairResult.getErrorMessage() != null) {
+                                        repairResultData.set("errorMessage", repairResult.getErrorMessage());
+                                    }
+                                    if (repairResult.getValidationResult() != null) {
+                                        repairResultData.set("validationResult", repairResult.getValidationResult());
+                                    }
+
+                                    // 如果修复成功，生成截图
+                                    if (repairResult.isSuccess()) {
+                                        generateCoverAsync(appId, codeGenType, taskId);
+                                        return Flux.just(
+                                                "EVENT:validation_result:" + validationData.toString(),
+                                                "EVENT:repair_started:" + repairStartedData.toString(),
+                                                "EVENT:repair_result:" + repairResultData.toString()
+                                        );
+                                    } else {
+                                        return Flux.just(
+                                                "EVENT:validation_result:" + validationData.toString(),
+                                                "EVENT:repair_started:" + repairStartedData.toString(),
+                                                "EVENT:repair_result:" + repairResultData.toString()
+                                        );
+                                    }
+                                } else {
+                                    log.info("不满足自动修复条件，跳过修复: taskId={}", taskId);
+                                }
                             }
 
                             return Flux.just("EVENT:validation_result:" + validationData.toString());

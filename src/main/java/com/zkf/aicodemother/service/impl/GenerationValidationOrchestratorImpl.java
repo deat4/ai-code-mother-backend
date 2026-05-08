@@ -7,8 +7,10 @@ import com.zkf.aicodemother.core.validation.ValidationResult;
 import com.zkf.aicodemother.core.validation.impl.HtmlValidationService;
 import com.zkf.aicodemother.core.validation.impl.MultiFileValidationService;
 import com.zkf.aicodemother.core.validation.impl.VueProjectValidationService;
+import com.zkf.aicodemother.model.entity.GenerationTask;
 import com.zkf.aicodemother.model.enums.GenerationTaskLogTypeEnum;
 import com.zkf.aicodemother.model.enums.GenerationTaskStageEnum;
+import com.zkf.aicodemother.model.enums.GenerationTaskStatusEnum;
 import com.zkf.aicodemother.service.GenerationTaskService;
 import com.zkf.aicodemother.service.GenerationValidationOrchestrator;
 import jakarta.annotation.Resource;
@@ -70,6 +72,17 @@ public class GenerationValidationOrchestratorImpl implements GenerationValidatio
     public ValidationResult validateHtmlOrMultiFile(ValidationContext context) {
         log.info("校验 HTML/MULTI_FILE: taskId={}", context.getTaskId());
 
+        // 检查任务状态是否仍然是 RUNNING
+        GenerationTask task = generationTaskService.getTaskById(context.getTaskId());
+        if (task == null || !GenerationTaskStatusEnum.RUNNING.getValue().equals(task.getStatus())) {
+            log.warn("任务状态不是 RUNNING，跳过校验: taskId={}, status={}",
+                    context.getTaskId(), task != null ? task.getStatus() : "null");
+            return ValidationResult.builder()
+                    .passed(false)
+                    .summary("任务已被取消或状态已变化")
+                    .build();
+        }
+
         // 更新任务阶段为 VALIDATING
         generationTaskService.updateStage(context.getTaskId(), GenerationTaskStageEnum.VALIDATING);
         generationTaskService.appendLog(context.getTaskId(), GenerationTaskStageEnum.VALIDATING,
@@ -103,6 +116,17 @@ public class GenerationValidationOrchestratorImpl implements GenerationValidatio
     @Override
     public ValidationResult validateVueProject(ValidationContext context) {
         log.info("校验 VUE_PROJECT: taskId={}", context.getTaskId());
+
+        // 检查任务状态是否仍然是 RUNNING
+        GenerationTask task = generationTaskService.getTaskById(context.getTaskId());
+        if (task == null || !GenerationTaskStatusEnum.RUNNING.getValue().equals(task.getStatus())) {
+            log.warn("任务状态不是 RUNNING，跳过校验: taskId={}, status={}",
+                    context.getTaskId(), task != null ? task.getStatus() : "null");
+            return ValidationResult.builder()
+                    .passed(false)
+                    .summary("任务已被取消或状态已变化")
+                    .build();
+        }
 
         // 第一阶段：结构校验
         generationTaskService.updateStage(context.getTaskId(), GenerationTaskStageEnum.VALIDATING);

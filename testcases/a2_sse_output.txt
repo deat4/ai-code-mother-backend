@@ -1,0 +1,2062 @@
+event:session
+data:{"sessionId":"d64ead25e0374c68"}
+
+event:task_created
+data:{"taskId":"409626910183596032","stage":"init","status":"running"}
+
+data:{"d":"---"}
+
+data:{"d":"文件名"}
+
+data:{"d":":"}
+
+data:{"d":" index"}
+
+data:{"d":".html"}
+
+data:{"d":"---\n"}
+
+data:{"d":"<!"}
+
+data:{"d":"DOCTYPE"}
+
+data:{"d":" html"}
+
+data:{"d":">\n"}
+
+data:{"d":"<html"}
+
+data:{"d":" lang"}
+
+data:{"d":"=\""}
+
+data:{"d":"zh"}
+
+data:{"d":"-C"}
+
+data:{"d":"N"}
+
+data:{"d":"\">\n"}
+
+data:{"d":"<head"}
+
+data:{"d":">\n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"meta"}
+
+data:{"d":" charset"}
+
+data:{"d":"=\""}
+
+data:{"d":"UTF"}
+
+data:{"d":"-"}
+
+data:{"d":"8"}
+
+data:{"d":"\">\n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"title"}
+
+data:{"d":">"}
+
+data:{"d":"样式"}
+
+data:{"d":"颜色"}
+
+data:{"d":"修改"}
+
+data:{"d":"示例"}
+
+data:{"d":"</"}
+
+data:{"d":"title"}
+
+data:{"d":">\n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"link"}
+
+data:{"d":" rel"}
+
+data:{"d":"=\""}
+
+data:{"d":"stylesheet"}
+
+data:{"d":"\""}
+
+data:{"d":" href"}
+
+data:{"d":"=\""}
+
+data:{"d":"style"}
+
+data:{"d":".css"}
+
+data:{"d":"\">\n"}
+
+data:{"d":"</"}
+
+data:{"d":"head"}
+
+data:{"d":">\n"}
+
+data:{"d":"<body"}
+
+data:{"d":">\n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"div"}
+
+data:{"d":" id"}
+
+data:{"d":"=\""}
+
+data:{"d":"app"}
+
+data:{"d":"\">\n"}
+
+data:{"d":"       "}
+
+data:{"d":" <"}
+
+data:{"d":"h"}
+
+data:{"d":"1"}
+
+data:{"d":">"}
+
+data:{"d":"样式"}
+
+data:{"d":"颜色"}
+
+data:{"d":"修改"}
+
+data:{"d":"示例"}
+
+data:{"d":"</"}
+
+data:{"d":"h"}
+
+data:{"d":"1"}
+
+data:{"d":">\n"}
+
+data:{"d":"       "}
+
+data:{"d":" <"}
+
+data:{"d":"p"}
+
+data:{"d":" class"}
+
+data:{"d":"=\""}
+
+data:{"d":"text"}
+
+data:{"d":"-primary"}
+
+data:{"d":"\">"}
+
+data:{"d":"这是"}
+
+data:{"d":"主要"}
+
+data:{"d":"文字"}
+
+data:{"d":"颜色"}
+
+data:{"d":"</"}
+
+data:{"d":"p"}
+
+data:{"d":">\n"}
+
+data:{"d":"       "}
+
+data:{"d":" <"}
+
+data:{"d":"p"}
+
+data:{"d":" class"}
+
+data:{"d":"=\""}
+
+data:{"d":"text"}
+
+data:{"d":"-secondary"}
+
+data:{"d":"\">"}
+
+data:{"d":"这是"}
+
+data:{"d":"次要"}
+
+data:{"d":"文字"}
+
+data:{"d":"颜色"}
+
+data:{"d":"</"}
+
+data:{"d":"p"}
+
+data:{"d":">\n"}
+
+data:{"d":"       "}
+
+data:{"d":" <"}
+
+data:{"d":"p"}
+
+data:{"d":" class"}
+
+data:{"d":"=\""}
+
+data:{"d":"text"}
+
+data:{"d":"-ac"}
+
+data:{"d":"cent"}
+
+data:{"d":"\">"}
+
+data:{"d":"这是"}
+
+data:{"d":"强调"}
+
+data:{"d":"文字"}
+
+data:{"d":"颜色"}
+
+data:{"d":"</"}
+
+data:{"d":"p"}
+
+data:{"d":">\n"}
+
+data:{"d":"       "}
+
+data:{"d":" <"}
+
+data:{"d":"button"}
+
+data:{"d":" class"}
+
+data:{"d":"=\""}
+
+data:{"d":"btn"}
+
+data:{"d":"-primary"}
+
+data:{"d":"\">"}
+
+data:{"d":"主要"}
+
+data:{"d":"按钮"}
+
+data:{"d":"</"}
+
+data:{"d":"button"}
+
+data:{"d":">\n"}
+
+data:{"d":"       "}
+
+data:{"d":" <"}
+
+data:{"d":"button"}
+
+data:{"d":" class"}
+
+data:{"d":"=\""}
+
+data:{"d":"btn"}
+
+data:{"d":"-secondary"}
+
+data:{"d":"\">"}
+
+data:{"d":"次要"}
+
+data:{"d":"按钮"}
+
+data:{"d":"</"}
+
+data:{"d":"button"}
+
+data:{"d":">\n"}
+
+data:{"d":"       "}
+
+data:{"d":" <"}
+
+data:{"d":"div"}
+
+data:{"d":" class"}
+
+data:{"d":"=\""}
+
+data:{"d":"card"}
+
+data:{"d":"\">\n"}
+
+data:{"d":"           "}
+
+data:{"d":" <"}
+
+data:{"d":"p"}
+
+data:{"d":">"}
+
+data:{"d":"这是一个"}
+
+data:{"d":"卡片"}
+
+data:{"d":"，"}
+
+data:{"d":"背景"}
+
+data:{"d":"色"}
+
+data:{"d":"已"}
+
+data:{"d":"修改"}
+
+data:{"d":"</"}
+
+data:{"d":"p"}
+
+data:{"d":">\n"}
+
+data:{"d":"       "}
+
+data:{"d":" </"}
+
+data:{"d":"div"}
+
+data:{"d":">\n"}
+
+data:{"d":"   "}
+
+data:{"d":" </"}
+
+data:{"d":"div"}
+
+data:{"d":">\n"}
+
+data:{"d":"   "}
+
+data:{"d":" <"}
+
+data:{"d":"script"}
+
+data:{"d":" src"}
+
+data:{"d":"=\""}
+
+data:{"d":"script"}
+
+data:{"d":".js"}
+
+data:{"d":"\"></"}
+
+data:{"d":"script"}
+
+data:{"d":">\n"}
+
+data:{"d":"</"}
+
+data:{"d":"body"}
+
+data:{"d":">\n"}
+
+data:{"d":"</"}
+
+data:{"d":"html"}
+
+data:{"d":">\n\n"}
+
+data:{"d":"---"}
+
+data:{"d":"文件名"}
+
+data:{"d":":"}
+
+data:{"d":" style"}
+
+data:{"d":".css"}
+
+data:{"d":"---\n"}
+
+data:{"d":"/*"}
+
+data:{"d":" "}
+
+data:{"d":"全局"}
+
+data:{"d":"样式"}
+
+data:{"d":" */\n"}
+
+data:{"d":"body"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" font"}
+
+data:{"d":"-family"}
+
+data:{"d":":"}
+
+data:{"d":" '"}
+
+data:{"d":"Seg"}
+
+data:{"d":"oe"}
+
+data:{"d":" UI"}
+
+data:{"d":"',"}
+
+data:{"d":" T"}
+
+data:{"d":"ahoma"}
+
+data:{"d":","}
+
+data:{"d":" Geneva"}
+
+data:{"d":","}
+
+data:{"d":" Verd"}
+
+data:{"d":"ana"}
+
+data:{"d":","}
+
+data:{"d":" sans"}
+
+data:{"d":"-serif"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" margin"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"0"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" padding"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"20"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" background"}
+
+data:{"d":"-color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"f"}
+
+data:{"d":"0"}
+
+data:{"d":"f"}
+
+data:{"d":"4"}
+
+data:{"d":"f"}
+
+data:{"d":"8"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"浅"}
+
+data:{"d":"灰"}
+
+data:{"d":"蓝"}
+
+data:{"d":"背景"}
+
+data:{"d":" */\n"}
+
+data:{"d":"   "}
+
+data:{"d":" color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"2"}
+
+data:{"d":"c"}
+
+data:{"d":"3"}
+
+data:{"d":"e"}
+
+data:{"d":"50"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"深"}
+
+data:{"d":"灰"}
+
+data:{"d":"蓝"}
+
+data:{"d":"文字"}
+
+data:{"d":" */\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":"#"}
+
+data:{"d":"app"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" max"}
+
+data:{"d":"-width"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"800"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" margin"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"0"}
+
+data:{"d":" auto"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" padding"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"20"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" background"}
+
+data:{"d":"-color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"ffffff"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" border"}
+
+data:{"d":"-radius"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"12"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" box"}
+
+data:{"d":"-shadow"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"0"}
+
+data:{"d":" "}
+
+data:{"d":"4"}
+
+data:{"d":"px"}
+
+data:{"d":" "}
+
+data:{"d":"12"}
+
+data:{"d":"px"}
+
+data:{"d":" rgba"}
+
+data:{"d":"("}
+
+data:{"d":"0"}
+
+data:{"d":","}
+
+data:{"d":" "}
+
+data:{"d":"0"}
+
+data:{"d":","}
+
+data:{"d":" "}
+
+data:{"d":"0"}
+
+data:{"d":","}
+
+data:{"d":" "}
+
+data:{"d":"0"}
+
+data:{"d":"."}
+
+data:{"d":"1"}
+
+data:{"d":");\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":"h"}
+
+data:{"d":"1"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"1"}
+
+data:{"d":"a"}
+
+data:{"d":"73"}
+
+data:{"d":"e"}
+
+data:{"d":"8"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"蓝色"}
+
+data:{"d":"标题"}
+
+data:{"d":" */\n"}
+
+data:{"d":"   "}
+
+data:{"d":" font"}
+
+data:{"d":"-size"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"28"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" margin"}
+
+data:{"d":"-bottom"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"20"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":"/*"}
+
+data:{"d":" "}
+
+data:{"d":"文字"}
+
+data:{"d":"颜色"}
+
+data:{"d":"类"}
+
+data:{"d":" */\n"}
+
+data:{"d":".text"}
+
+data:{"d":"-primary"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"1"}
+
+data:{"d":"a"}
+
+data:{"d":"73"}
+
+data:{"d":"e"}
+
+data:{"d":"8"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"蓝色"}
+
+data:{"d":" */\n"}
+
+data:{"d":"   "}
+
+data:{"d":" font"}
+
+data:{"d":"-size"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"18"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":".text"}
+
+data:{"d":"-secondary"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"5"}
+
+data:{"d":"f"}
+
+data:{"d":"636"}
+
+data:{"d":"8"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"灰色"}
+
+data:{"d":" */\n"}
+
+data:{"d":"   "}
+
+data:{"d":" font"}
+
+data:{"d":"-size"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"16"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":".text"}
+
+data:{"d":"-ac"}
+
+data:{"d":"cent"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"e"}
+
+data:{"d":"871"}
+
+data:{"d":"0"}
+
+data:{"d":"a"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"橙色"}
+
+data:{"d":" */\n"}
+
+data:{"d":"   "}
+
+data:{"d":" font"}
+
+data:{"d":"-size"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"18"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" font"}
+
+data:{"d":"-weight"}
+
+data:{"d":":"}
+
+data:{"d":" bold"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":"/*"}
+
+data:{"d":" "}
+
+data:{"d":"按钮"}
+
+data:{"d":"样式"}
+
+data:{"d":" */\n"}
+
+data:{"d":".btn"}
+
+data:{"d":"-primary"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" background"}
+
+data:{"d":"-color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"1"}
+
+data:{"d":"a"}
+
+data:{"d":"73"}
+
+data:{"d":"e"}
+
+data:{"d":"8"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"蓝色"}
+
+data:{"d":" */\n"}
+
+data:{"d":"   "}
+
+data:{"d":" color"}
+
+data:{"d":":"}
+
+data:{"d":" white"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" border"}
+
+data:{"d":":"}
+
+data:{"d":" none"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" padding"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"10"}
+
+data:{"d":"px"}
+
+data:{"d":" "}
+
+data:{"d":"24"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" font"}
+
+data:{"d":"-size"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"16"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" border"}
+
+data:{"d":"-radius"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"6"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" cursor"}
+
+data:{"d":":"}
+
+data:{"d":" pointer"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" margin"}
+
+data:{"d":"-right"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"10"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" transition"}
+
+data:{"d":":"}
+
+data:{"d":" background"}
+
+data:{"d":"-color"}
+
+data:{"d":" "}
+
+data:{"d":"0"}
+
+data:{"d":"."}
+
+data:{"d":"3"}
+
+data:{"d":"s"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":".btn"}
+
+data:{"d":"-primary"}
+
+data:{"d":":hover"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" background"}
+
+data:{"d":"-color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"155"}
+
+data:{"d":"7"}
+
+data:{"d":"b"}
+
+data:{"d":"0"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"深"}
+
+data:{"d":"蓝"}
+
+data:{"d":" */\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":".btn"}
+
+data:{"d":"-secondary"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" background"}
+
+data:{"d":"-color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"34"}
+
+data:{"d":"a"}
+
+data:{"d":"853"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"绿色"}
+
+data:{"d":" */\n"}
+
+data:{"d":"   "}
+
+data:{"d":" color"}
+
+data:{"d":":"}
+
+data:{"d":" white"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" border"}
+
+data:{"d":":"}
+
+data:{"d":" none"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" padding"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"10"}
+
+data:{"d":"px"}
+
+data:{"d":" "}
+
+data:{"d":"24"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" font"}
+
+data:{"d":"-size"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"16"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" border"}
+
+data:{"d":"-radius"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"6"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" cursor"}
+
+data:{"d":":"}
+
+data:{"d":" pointer"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" transition"}
+
+data:{"d":":"}
+
+data:{"d":" background"}
+
+data:{"d":"-color"}
+
+data:{"d":" "}
+
+data:{"d":"0"}
+
+data:{"d":"."}
+
+data:{"d":"3"}
+
+data:{"d":"s"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":".btn"}
+
+data:{"d":"-secondary"}
+
+data:{"d":":hover"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" background"}
+
+data:{"d":"-color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"2"}
+
+data:{"d":"d"}
+
+data:{"d":"8"}
+
+data:{"d":"f"}
+
+data:{"d":"47"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"深"}
+
+data:{"d":"绿"}
+
+data:{"d":" */\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":"/*"}
+
+data:{"d":" "}
+
+data:{"d":"卡片"}
+
+data:{"d":"样式"}
+
+data:{"d":" */\n"}
+
+data:{"d":".card"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" background"}
+
+data:{"d":"-color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"e"}
+
+data:{"d":"8"}
+
+data:{"d":"f"}
+
+data:{"d":"0"}
+
+data:{"d":"fe"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"浅"}
+
+data:{"d":"蓝"}
+
+data:{"d":"背景"}
+
+data:{"d":" */\n"}
+
+data:{"d":"   "}
+
+data:{"d":" border"}
+
+data:{"d":"-left"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"4"}
+
+data:{"d":"px"}
+
+data:{"d":" solid"}
+
+data:{"d":" #"}
+
+data:{"d":"1"}
+
+data:{"d":"a"}
+
+data:{"d":"73"}
+
+data:{"d":"e"}
+
+data:{"d":"8"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"蓝色"}
+
+data:{"d":"左边"}
+
+data:{"d":"框"}
+
+data:{"d":" */\n"}
+
+data:{"d":"   "}
+
+data:{"d":" padding"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"16"}
+
+data:{"d":"px"}
+
+data:{"d":" "}
+
+data:{"d":"20"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" margin"}
+
+data:{"d":"-top"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"20"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" border"}
+
+data:{"d":"-radius"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"8"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"   "}
+
+data:{"d":" color"}
+
+data:{"d":":"}
+
+data:{"d":" #"}
+
+data:{"d":"1"}
+
+data:{"d":"a"}
+
+data:{"d":"73"}
+
+data:{"d":"e"}
+
+data:{"d":"8"}
+
+data:{"d":";"}
+
+data:{"d":" /*"}
+
+data:{"d":" "}
+
+data:{"d":"蓝色"}
+
+data:{"d":"文字"}
+
+data:{"d":" */\n"}
+
+data:{"d":"   "}
+
+data:{"d":" font"}
+
+data:{"d":"-size"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"16"}
+
+data:{"d":"px"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":".card"}
+
+data:{"d":" p"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" margin"}
+
+data:{"d":":"}
+
+data:{"d":" "}
+
+data:{"d":"0"}
+
+data:{"d":";\n"}
+
+data:{"d":"}\n\n"}
+
+data:{"d":"---"}
+
+data:{"d":"文件名"}
+
+data:{"d":":"}
+
+data:{"d":" script"}
+
+data:{"d":".js"}
+
+data:{"d":"---\n"}
+
+data:{"d":"//"}
+
+data:{"d":" "}
+
+data:{"d":"简单的"}
+
+data:{"d":"交互"}
+
+data:{"d":"脚本"}
+
+data:{"d":"，"}
+
+data:{"d":"演示"}
+
+data:{"d":"样式"}
+
+data:{"d":"颜色的"}
+
+data:{"d":"动态"}
+
+data:{"d":"修改"}
+
+data:{"d":"\n"}
+
+data:{"d":"document"}
+
+data:{"d":".addEventListener"}
+
+data:{"d":"('"}
+
+data:{"d":"DOM"}
+
+data:{"d":"Content"}
+
+data:{"d":"Loaded"}
+
+data:{"d":"',"}
+
+data:{"d":" ()"}
+
+data:{"d":" =>"}
+
+data:{"d":" {\n"}
+
+data:{"d":"   "}
+
+data:{"d":" //"}
+
+data:{"d":" "}
+
+data:{"d":"获取"}
+
+data:{"d":"所有"}
+
+data:{"d":"按钮"}
+
+data:{"d":"\n"}
+
+data:{"d":"   "}
+
+data:{"d":" const"}
+
+data:{"d":" primary"}
+
+data:{"d":"Btn"}
+
+data:{"d":" ="}
+
+data:{"d":" document"}
+
+data:{"d":".querySelector"}
+
+data:{"d":"('."}
+
+data:{"d":"btn"}
+
+data:{"d":"-primary"}
+
+data:{"d":"');\n"}
+
+data:{"d":"   "}
+
+data:{"d":" const"}
+
+data:{"d":" secondary"}
+
+data:{"d":"Btn"}
+
+data:{"d":" ="}
+
+data:{"d":" document"}
+
+data:{"d":".querySelector"}
+
+data:{"d":"('."}
+
+data:{"d":"btn"}
+
+data:{"d":"-secondary"}
+
+data:{"d":"');\n"}
+
+data:{"d":"   "}
+
+data:{"d":" const"}
+
+data:{"d":" card"}
+
+data:{"d":" ="}
+
+data:{"d":" document"}
+
+data:{"d":".querySelector"}
+
+data:{"d":"('."}
+
+data:{"d":"card"}
+
+data:{"d":"');\n\n"}
+
+data:{"d":"   "}
+
+data:{"d":" //"}
+
+data:{"d":" "}
+
+data:{"d":"主要"}
+
+data:{"d":"按钮"}
+
+data:{"d":"点击"}
+
+data:{"d":"："}
+
+data:{"d":"修改"}
+
+data:{"d":"卡片"}
+
+data:{"d":"背景"}
+
+data:{"d":"色"}
+
+data:{"d":"和"}
+
+data:{"d":"边框"}
+
+data:{"d":"颜色"}
+
+data:{"d":"\n"}
+
+data:{"d":"   "}
+
+data:{"d":" primary"}
+
+data:{"d":"Btn"}
+
+data:{"d":".addEventListener"}
+
+data:{"d":"('"}
+
+data:{"d":"click"}
+
+data:{"d":"',"}
+
+data:{"d":" ()"}
+
+data:{"d":" =>"}
+
+data:{"d":" {\n"}
+
+data:{"d":"       "}
+
+data:{"d":" card"}
+
+data:{"d":".style"}
+
+data:{"d":".backgroundColor"}
+
+data:{"d":" ="}
+
+data:{"d":" '#"}
+
+data:{"d":"d"}
+
+data:{"d":"2"}
+
+data:{"d":"e"}
+
+data:{"d":"3"}
+
+data:{"d":"fc"}
+
+data:{"d":"';"}
+
+data:{"d":" //"}
+
+data:{"d":" "}
+
+data:{"d":"更"}
+
+data:{"d":"浅"}
+
+data:{"d":"的"}
+
+data:{"d":"蓝色"}
+
+data:{"d":"\n"}
+
+data:{"d":"       "}
+
+data:{"d":" card"}
+
+data:{"d":".style"}
+
+data:{"d":".b"}
+
+data:{"d":"order"}
+
+data:{"d":"Left"}
+
+data:{"d":"Color"}
+
+data:{"d":" ="}
+
+data:{"d":" '#"}
+
+data:{"d":"155"}
+
+data:{"d":"7"}
+
+data:{"d":"b"}
+
+data:{"d":"0"}
+
+data:{"d":"';"}
+
+data:{"d":" //"}
+
+data:{"d":" "}
+
+data:{"d":"深"}
+
+data:{"d":"蓝色"}
+
+data:{"d":"边框"}
+
+data:{"d":"\n"}
+
+data:{"d":"       "}
+
+data:{"d":" card"}
+
+data:{"d":".querySelector"}
+
+data:{"d":"('"}
+
+data:{"d":"p"}
+
+data:{"d":"')."}
+
+data:{"d":"text"}
+
+data:{"d":"Content"}
+
+data:{"d":" ="}
+
+data:{"d":" '"}
+
+data:{"d":"卡片"}
+
+data:{"d":"颜色"}
+
+data:{"d":"已"}
+
+data:{"d":"修改"}
+
+data:{"d":"为"}
+
+data:{"d":"浅"}
+
+data:{"d":"蓝色"}
+
+data:{"d":"！"}
+
+data:{"d":"';\n"}
+
+data:{"d":"   "}
+
+data:{"d":" });\n\n"}
+
+data:{"d":"   "}
+
+data:{"d":" //"}
+
+data:{"d":" "}
+
+data:{"d":"次要"}
+
+data:{"d":"按钮"}
+
+data:{"d":"点击"}
+
+data:{"d":"："}
+
+data:{"d":"恢复"}
+
+data:{"d":"卡片"}
+
+data:{"d":"原始"}
+
+data:{"d":"颜色"}
+
+data:{"d":"\n"}
+
+data:{"d":"   "}
+
+data:{"d":" secondary"}
+
+data:{"d":"Btn"}
+
+data:{"d":".addEventListener"}
+
+data:{"d":"('"}
+
+data:{"d":"click"}
+
+data:{"d":"',"}
+
+data:{"d":" ()"}
+
+data:{"d":" =>"}
+
+data:{"d":" {\n"}
+
+data:{"d":"       "}
+
+data:{"d":" card"}
+
+data:{"d":".style"}
+
+data:{"d":".backgroundColor"}
+
+data:{"d":" ="}
+
+data:{"d":" '#"}
+
+data:{"d":"e"}
+
+data:{"d":"8"}
+
+data:{"d":"f"}
+
+data:{"d":"0"}
+
+data:{"d":"fe"}
+
+data:{"d":"';"}
+
+data:{"d":" //"}
+
+data:{"d":" "}
+
+data:{"d":"原始"}
+
+data:{"d":"浅"}
+
+data:{"d":"蓝"}
+
+data:{"d":"\n"}
+
+data:{"d":"       "}
+
+data:{"d":" card"}
+
+data:{"d":".style"}
+
+data:{"d":".b"}
+
+data:{"d":"order"}
+
+data:{"d":"Left"}
+
+data:{"d":"Color"}
+
+data:{"d":" ="}
+
+data:{"d":" '#"}
+
+data:{"d":"1"}
+
+data:{"d":"a"}
+
+data:{"d":"73"}
+
+data:{"d":"e"}
+
+data:{"d":"8"}
+
+data:{"d":"';"}
+
+data:{"d":" //"}
+
+data:{"d":" "}
+
+data:{"d":"原始"}
+
+data:{"d":"蓝色"}
+
+data:{"d":"边框"}
+
+data:{"d":"\n"}
+
+data:{"d":"       "}
+
+data:{"d":" card"}
+
+data:{"d":".querySelector"}
+
+data:{"d":"('"}
+
+data:{"d":"p"}
+
+data:{"d":"')."}
+
+data:{"d":"text"}
+
+data:{"d":"Content"}
+
+data:{"d":" ="}
+
+data:{"d":" '"}
+
+data:{"d":"这是一个"}
+
+data:{"d":"卡片"}
+
+data:{"d":"，"}
+
+data:{"d":"背景"}
+
+data:{"d":"色"}
+
+data:{"d":"已"}
+
+data:{"d":"恢复"}
+
+data:{"d":"';\n"}
+
+data:{"d":"   "}
+
+data:{"d":" });\n\n"}
+
+data:{"d":"   "}
+
+data:{"d":" //"}
+
+data:{"d":" "}
+
+data:{"d":"控制"}
+
+data:{"d":"台"}
+
+data:{"d":"提示"}
+
+data:{"d":"\n"}
+
+data:{"d":"   "}
+
+data:{"d":" console"}
+
+data:{"d":".log"}
+
+data:{"d":"('"}
+
+data:{"d":"样式"}
+
+data:{"d":"颜色"}
+
+data:{"d":"示例"}
+
+data:{"d":"已"}
+
+data:{"d":"加载"}
+
+data:{"d":"，"}
+
+data:{"d":"点击"}
+
+data:{"d":"按钮"}
+
+data:{"d":"可"}
+
+data:{"d":"修改"}
+
+data:{"d":"卡片"}
+
+data:{"d":"颜色"}
+
+data:{"d":"！"}
+
+data:{"d":"');\n"}
+
+data:{"d":"});"}
+
+event:validation_result
+data:{"taskId":"409626910183596032","passed":true,"summary":"MULTI_FILE 校验通过","stage":"VALIDATING","issueCount":0,"warningCount":0,"issues":[]}
+
+event:done
+data:
+

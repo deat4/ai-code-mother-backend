@@ -110,6 +110,12 @@ public class GenerationTaskServiceImpl implements GenerationTaskService {
         GenerationTask task = generationTaskMapper.selectOneById(taskId);
         ThrowUtils.throwIf(task == null, ErrorCode.NOT_FOUND_ERROR, "任务不存在");
 
+        // 只有 RUNNING 状态才能标记成功（防止 validation 失败后 markFailed 被覆盖）
+        if (!GenerationTaskStatusEnum.RUNNING.getValue().equals(task.getStatus())) {
+            log.warn("任务状态不是 RUNNING，无法标记成功: taskId={}, status={}", taskId, task.getStatus());
+            return;
+        }
+
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startedAt = task.getStartedAt();
         long durationMs = startedAt != null ?
@@ -134,6 +140,12 @@ public class GenerationTaskServiceImpl implements GenerationTaskService {
 
         GenerationTask task = generationTaskMapper.selectOneById(taskId);
         ThrowUtils.throwIf(task == null, ErrorCode.NOT_FOUND_ERROR, "任务不存在");
+
+        // 只有 RUNNING 状态才能标记失败（防止取消状态被覆盖）
+        if (!GenerationTaskStatusEnum.RUNNING.getValue().equals(task.getStatus())) {
+            log.warn("任务状态不是 RUNNING，无法标记失败: taskId={}, status={}", taskId, task.getStatus());
+            return;
+        }
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startedAt = task.getStartedAt();
@@ -160,6 +172,14 @@ public class GenerationTaskServiceImpl implements GenerationTaskService {
 
         GenerationTask task = generationTaskMapper.selectOneById(taskId);
         ThrowUtils.throwIf(task == null, ErrorCode.NOT_FOUND_ERROR, "任务不存在");
+
+        // 只有 RUNNING 或 PENDING 状态才能取消
+        String currentStatus = task.getStatus();
+        if (!GenerationTaskStatusEnum.RUNNING.getValue().equals(currentStatus)
+                && !GenerationTaskStatusEnum.PENDING.getValue().equals(currentStatus)) {
+            log.warn("任务状态不允许取消: taskId={}, status={}", taskId, currentStatus);
+            return;
+        }
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startedAt = task.getStartedAt();
@@ -283,5 +303,57 @@ public class GenerationTaskServiceImpl implements GenerationTaskService {
         }
 
         log.info("保存校验结果: taskId={}, summary={}, passed={}", taskId, summary, passed);
+    }
+
+    @Override
+    @Transactional
+    public void updateRepairInfo(Long taskId, int repairCount, int maxRepairCount, String summary) {
+        ThrowUtils.throwIf(taskId == null || taskId <= 0, ErrorCode.PARAMS_ERROR, "任务ID无效");
+
+        GenerationTask task = generationTaskMapper.selectOneById(taskId);
+        ThrowUtils.throwIf(task == null, ErrorCode.NOT_FOUND_ERROR, "任务不存在");
+
+        task.setRepairCount(repairCount);
+        task.setMaxRepairCount(maxRepairCount);
+        task.setRepairSummary(summary);
+        task.setUpdateTime(LocalDateTime.now());
+
+        generationTaskMapper.update(task);
+        log.info("更新修复信息: taskId={}, repairCount={}, maxRepairCount={}, summary={}",
+                taskId, repairCount, maxRepairCount, summary);
+    }
+
+    @Override
+    @Transactional
+    public int incrementRepairCount(Long taskId) {
+        ThrowUtils.throwIf(taskId == null || taskId <= 0, ErrorCode.PARAMS_ERROR, "任务ID无效");
+
+        GenerationTask task = generationTaskMapper.selectOneById(taskId);
+        ThrowUtils.throwIf(task == null, ErrorCode.NOT_FOUND_ERROR, "任务不存在");
+
+        int currentCount = task.getRepairCount() != null ? task.getRepairCount() : 0;
+        int newCount = currentCount + 1;
+        task.setRepairCount(newCount);
+        task.setUpdateTime(LocalDateTime.now());
+
+        generationTaskMapper.update(task);
+        log.info("增加修复轮次: taskId={}, oldCount={}, newCount={}", taskId, currentCount, newCount);
+        return newCount;
+    }
+
+    @Override
+    @Transactional
+    public void initRepairQuota(Long taskId, int maxRepairCount) {
+        ThrowUtils.throwIf(taskId == null || taskId <= 0, ErrorCode.PARAMS_ERROR, "任务ID无效");
+
+        GenerationTask task = generationTaskMapper.selectOneById(taskId);
+        ThrowUtils.throwIf(task == null, ErrorCode.NOT_FOUND_ERROR, "任务不存在");
+
+        task.setRepairCount(0);
+        task.setMaxRepairCount(maxRepairCount);
+        task.setUpdateTime(LocalDateTime.now());
+
+        generationTaskMapper.update(task);
+        log.info("初始化修复配额: taskId={}, maxRepairCount={}", taskId, maxRepairCount);
     }
 }

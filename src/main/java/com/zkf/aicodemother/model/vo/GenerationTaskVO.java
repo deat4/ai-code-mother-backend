@@ -109,4 +109,19 @@ public class GenerationTaskVO implements Serializable {
      * 警告数量（仅统计 WARN）
      */
     private Integer warningCount;
+
+    /**
+     * 当前修复轮次
+     */
+    private Integer repairCount;
+
+    /**
+     * 最大修复轮次
+     */
+    private Integer maxRepairCount;
+
+    /**
+     * 修复摘要
+     */
+    private String repairSummary;
 }

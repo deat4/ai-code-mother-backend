@@ -1,0 +1,17 @@
+# 开发测试环境配置
+# 激活方式: spring.profiles.active=dev,location
+
+test:
+  failure-injection:
+    enabled: true
+    html-failure-mode: NONE
+    multi-file-failure-mode: NONE
+    vue-project-failure-mode: NONE
+    force-build-fail: false
+
+  validation-delay:
+    enabled: false
+    before-validation-delay-ms: 0
+    before-build-delay-ms: 0
+    before-repair-delay-ms: 0
+    before-screenshot-delay-ms: 0
